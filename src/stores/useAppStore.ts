@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type AnyRecord = Record<string, any>
 
@@ -174,8 +175,10 @@ const initialState: AppState = {
   },
 }
 
-export const useAppStore = create<AppStore>((set) => ({
-  ...initialState,
+export const useAppStore = create<AppStore>()(
+  persist(
+    (set) => ({
+      ...initialState,
 
   updateInputData: (newData) =>
     set((state) => ({
@@ -357,4 +360,16 @@ export const useAppStore = create<AppStore>((set) => ({
         },
       },
     })),
-}))
+    }),
+    {
+      name: 'pback-app-store',
+      partialize: (state) => ({
+        generationStartStep: state.generationStartStep,
+        input: state.input,
+        output: state.output,
+        workblock: state.workblock,
+        layout: state.layout,
+      }),
+    },
+  ),
+)

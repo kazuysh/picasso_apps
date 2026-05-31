@@ -665,11 +665,6 @@ export default function GenerationRunnerPage() {
     navigate('/project-detail')
   }, [navigate])
 
-  const handleMoveSelectResult = useCallback(() => {
-    setMoveDialogOpen(false)
-    window.location.href = `/SelectResult2?d=${encodeURIComponent(String(drawingNo))}`
-  }, [drawingNo])
-
   const handleRun = useCallback(async () => {
     setRunning(true)
     clearLogs()
@@ -933,9 +928,6 @@ export default function GenerationRunnerPage() {
           <Button onClick={handleMoveDialogClose}>キャンセル</Button>
           <Button onClick={handleMoveProjectDetail} variant="outlined">
             案件詳細へ
-          </Button>
-          <Button onClick={handleMoveSelectResult} variant="contained" disabled={!drawingNo}>
-            生成結果へ
           </Button>
         </DialogActions>
       </Dialog>
