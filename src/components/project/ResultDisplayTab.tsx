@@ -28,7 +28,7 @@ type InfoRow = {
 }
 
 function joinValue(value: any): string {
-  if (Array.isArray(value)) return value.join(', ')
+  if (Array.isArray(value)) return value.join(',')
   if (value === null || value === undefined) return ''
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
@@ -47,6 +47,10 @@ function formatUlfUnitWidth(value: any): string {
 
 function downloadTextAsFile(text: string, filename: string) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  downloadBlobAsFile(blob, filename)
+}
+
+function downloadBlobAsFile(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
 
@@ -139,8 +143,6 @@ export default function ResultDisplayTab() {
 
   const infoRows: InfoRow[] = useMemo(() => {
     return [
-      { label: '図面番号', value: basic.drawingNoTemp ?? '' },
-      { label: '盤名称', value: basic.bordName ?? '' },
       { label: 'キャビネット品名', value: box.code ?? '' },
       { label: '内器高さ', value: cabinfo.support_height ?? '' },
       { label: '移動板', value: box.move_board ?? '' },
@@ -149,26 +151,24 @@ export default function ResultDisplayTab() {
       { label: '仕様', value: basic.major_specification ?? '' },
       { label: '省庁', value: basic.minor_specification2 ?? '' },
       { label: 'ユニットレイアウト（１）', value: joinValue(ulf?.['1']) },
-      { label: '幅組合せ（１）', value: box.i_floor1 ?? '' },
       { label: 'ユニットレイアウト（２）', value: joinValue(ulf?.['2']) },
-      { label: '幅組合せ（２）', value: box.i_floor2 ?? '' },
       { label: 'ユニットレイアウト（３）', value: joinValue(ulf?.['3']) },
-      { label: '幅組合せ（３）', value: box.i_floor3 ?? '' },
     ]
   }, [basic, box, cabinfo, ulf])
 
   const ulfRows = useMemo(() => {
-    const rows: { level: number; items: string }[] = []
+    const rows: { level: number; width: ReactNode; items: string }[] = []
 
     for (let i = 1; i <= 3; i += 1) {
       const key = String(i)
-      if (Array.isArray(ulf?.[key]) && ulf[key].length > 0) {
-        rows.push({ level: i, items: ulf[key].join(', ') })
+      const items = joinValue(ulf?.[key])
+      if (items) {
+        rows.push({ level: i, width: box[`i_floor${i}`] ?? '', items })
       }
     }
 
     return rows
-  }, [ulf])
+  }, [box, ulf])
 
   const handleDownloadUlf = useCallback(() => {
     const dimension = 26 * 3
@@ -213,20 +213,24 @@ export default function ResultDisplayTab() {
     }
 
     try {
+      const zipFilename = `ULF_EXT_${targetUid}.zip`
       const res = await axios.post(
         '/api/postFixedLenConvert',
         {
           uid: targetUid,
-          as_text: true,
-          line_sep: '\n',
           encoding: 'utf-8',
+          pad_char: ' ',
+          base: 1,
+          as_zip: true,
+          line_sep: '\n',
+          zip_filename: zipFilename,
         },
         {
-          responseType: 'text',
+          responseType: 'blob',
         }
       )
 
-      downloadTextAsFile(res.data ?? '', `ULF_EXT_${targetUid}.txt`)
+      downloadBlobAsFile(res.data, zipFilename)
     } catch (error) {
       console.error('[ResultDisplayTab][downloadExtendedUlf] failed', error)
       alert('拡張ULFのダウンロードに失敗しました')
@@ -290,17 +294,18 @@ export default function ResultDisplayTab() {
 
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-          ULFレイアウト
+          ユニットレイアウト
         </Typography>
 
         {ulfRows.length === 0 ? (
-          <Alert severity="info">ULFレイアウトデータがありません。</Alert>
+          <Alert severity="info">ユニットレイアウトデータがありません。</Alert>
         ) : (
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ width: 120, fontWeight: 700 }}>列</TableCell>
+                  <TableCell sx={{ width: 160, fontWeight: 700 }}>幅</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>ユニット</TableCell>
                 </TableRow>
               </TableHead>
@@ -308,6 +313,7 @@ export default function ResultDisplayTab() {
                 {ulfRows.map((row) => (
                   <TableRow key={row.level}>
                     <TableCell>{row.level}</TableCell>
+                    <TableCell>{row.width}</TableCell>
                     <TableCell>{row.items}</TableCell>
                   </TableRow>
                 ))}

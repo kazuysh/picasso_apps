@@ -123,7 +123,7 @@ export default function LayoutDesignTab({
   return (
     <>
       <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-        <Typography variant="h6">配置ブロック</Typography>
+        <Typography variant="h6">配置編集</Typography>
         <Tooltip title="配置編集">
           <IconButton size="small" onClick={() => setEditDialogOpen(true)}>
             <EditIcon fontSize="small" />
