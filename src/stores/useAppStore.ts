@@ -78,7 +78,10 @@ export type LayoutItem = {
   [key: string]: any
 }
 
+export type GenerationStartStep = 'full' | 'initialPlacement' | 'lineUp'
+
 export type AppState = {
+  generationStartStep: GenerationStartStep
   input: {
     basic: AnyRecord
     cabinfo: AnyRecord
@@ -123,6 +126,7 @@ export type AppState = {
 type Actions = {
   updateInputData: (data: AppState['input']) => void
   replaceAll: (data: AppState) => void
+  setGenerationStartStep: (step: GenerationStartStep) => void
 
   setCircuitGraphData: (graphdata: GraphData) => void
   applyCircuitGraphDataEdit: (graphdata: GraphData) => void
@@ -143,6 +147,7 @@ type Actions = {
 export type AppStore = AppState & Actions
 
 const initialState: AppState = {
+  generationStartStep: 'full',
   input: {
     basic: {},
     cabinfo: {},
@@ -181,6 +186,13 @@ export const useAppStore = create<AppStore>((set) => ({
   replaceAll: (data) =>
     set(() => ({
       ...data,
+      generationStartStep: 'full',
+    })),
+
+  setGenerationStartStep: (step) =>
+    set((state) => ({
+      ...state,
+      generationStartStep: step,
     })),
 
   setCircuitGraphData: (graphdata) =>
@@ -226,6 +238,7 @@ export const useAppStore = create<AppStore>((set) => ({
         backgroundSvgUrl: '',
         svg: '',
       },
+      generationStartStep: 'initialPlacement',
     })),
 
   setCircuitSaveFlag: (saveflg) =>
@@ -317,6 +330,7 @@ export const useAppStore = create<AppStore>((set) => ({
           },
         },
         layout: nextLayout,
+        generationStartStep: 'lineUp',
       }
     }),
 

@@ -120,9 +120,11 @@ export default function GenerationRunnerPage() {
 
   const input = useAppStore((s) => s.input)
   const layout = useAppStore((s) => s.layout)
+  const generationStartStep = useAppStore((s) => s.generationStartStep ?? 'full')
 
   const setCircuitGraphData = useAppStore((s) => s.setCircuitGraphData)
   const setCircuitSaveFlag = useAppStore((s) => s.setCircuitSaveFlag)
+  const setGenerationStartStep = useAppStore((s) => s.setGenerationStartStep)
   const setLayoutUlf = useAppStore((s) => s.setLayoutUlf)
   const setLayoutLayout = useAppStore((s) => s.setLayoutLayout)
   const setLayoutFloor = useAppStore((s) => s.setLayoutFloor)
@@ -675,17 +677,27 @@ export default function GenerationRunnerPage() {
     try {
       pushLog('生成処理を開始します')
 
-      await loadCircuit()
-      updateCircuit()
+      if (generationStartStep === 'full') {
+        await loadCircuit()
+        updateCircuit()
+      } else if (generationStartStep === 'initialPlacement') {
+        pushLog('回路編集後のため、AI初期配置から開始します')
+      } else if (generationStartStep === 'lineUp') {
+        pushLog('配置編集後のため、整列配置から開始します')
+      }
 
-      await runAiInitialPlacement()
-      await updateLayoutStore()
+      if (generationStartStep === 'full' || generationStartStep === 'initialPlacement') {
+        await runAiInitialPlacement()
+        await updateLayoutStore()
+      }
+
       await updateLineUp()
       await ensureBoxSelected()
       await saveSvgData2()
 
       pushLog('バックエンドへ保存します')
       await saveWork()
+      setGenerationStartStep('full')
       pushLog('バックエンド同期が完了しました', 'success')
       setMoveDialogOpen(true)
       pushLog('全処理が完了しました', 'success')
@@ -698,9 +710,11 @@ export default function GenerationRunnerPage() {
     }
   }, [
     clearLogs,
+    generationStartStep,
     loadCircuit,
     pushLog,
     runAiInitialPlacement,
+    setGenerationStartStep,
     updateCircuit,
     updateLayoutStore,
     updateLineUp,
@@ -710,6 +724,26 @@ export default function GenerationRunnerPage() {
 
   const successCount = logs.filter((l) => l.level === 'success').length
   const errorCount = logs.filter((l) => l.level === 'error').length
+  const flowSteps = useMemo(
+    () => [
+      { key: 'loadCircuit', label: '1. loadCircuit' },
+      { key: 'updateCircuit', label: '2. updateCircuit' },
+      { key: 'runAiInitialPlacement', label: '3. runAiInitialPlacement' },
+      { key: 'updateLayoutStore', label: '4. updateLayoutStore' },
+      { key: 'updateLineUp', label: '5. updateLineUp' },
+      { key: 'ensureBoxSelected', label: '6. ensureBoxSelected' },
+      { key: 'saveSvgData2', label: '7. saveSvgData2' },
+    ],
+    [],
+  )
+  const startStepKey =
+    generationStartStep === 'initialPlacement'
+      ? 'runAiInitialPlacement'
+      : generationStartStep === 'lineUp'
+        ? 'updateLineUp'
+        : 'loadCircuit'
+  const startStepIndex = flowSteps.findIndex((step) => step.key === startStepKey)
+  const startStepLabel = flowSteps[startStepIndex]?.label ?? flowSteps[0].label
 
   return (
     <Box sx={{ p: 3, backgroundColor: '#f6f8fb', minHeight: '100vh' }}>
@@ -781,20 +815,39 @@ export default function GenerationRunnerPage() {
                 </Typography>
               </Stack>
 
+              <Alert severity="info" sx={{ mb: 1.5 }}>
+                今回の開始点: {startStepLabel}
+              </Alert>
+
               <List dense>
-                {[
-                  '1. loadCircuit',
-                  '2. updateCircuit',
-                  '3. runAiInitialPlacement',
-                  '4. updateLayoutStore',
-                  '5. updateLineUp',
-                  '6. ensureBoxSelected',
-                  '7. saveSvgData2',
-                ].map((text) => (
-                  <ListItem key={text} disablePadding sx={{ py: 0.5 }}>
-                    <ListItemText primary={text} />
-                  </ListItem>
-                ))}
+                {flowSteps.map((step, index) => {
+                  const isStartStep = index === startStepIndex
+                  const isSkipped = index < startStepIndex
+
+                  return (
+                    <ListItem
+                      key={step.key}
+                      disablePadding
+                      secondaryAction={
+                        isStartStep ? (
+                          <Chip size="small" label="開始" color="primary" />
+                        ) : isSkipped ? (
+                          <Chip size="small" label="スキップ" variant="outlined" />
+                        ) : null
+                      }
+                      sx={{
+                        py: 0.5,
+                        opacity: isSkipped ? 0.45 : 1,
+                        '& .MuiListItemText-primary': {
+                          fontWeight: isStartStep ? 700 : 400,
+                          color: isStartStep ? 'primary.main' : 'text.primary',
+                        },
+                      }}
+                    >
+                      <ListItemText primary={step.label} />
+                    </ListItem>
+                  )
+                })}
               </List>
             </CardContent>
           </Card>

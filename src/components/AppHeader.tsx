@@ -6,7 +6,7 @@ export default function AppHeader() {
         <AppBar position="static" elevation={1}>
             <Toolbar>
                 <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
-                    配電盤設計システム
+                    InSize
                 </Typography>
 
                 {/* 右側にLogoff */}

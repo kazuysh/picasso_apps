@@ -426,7 +426,7 @@ export default function CircuitDesignTab({
         sx={{ mb: 1 }}
       >
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography variant="h6">回路ブロック</Typography>
+          <Typography variant="h6">回路編集</Typography>
           <Tooltip title="回路結合を編集">
             <IconButton
               size="small"

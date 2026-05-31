@@ -265,6 +265,7 @@ export default function ProjectListPage() {
     const workdata = project.workdata || {};
 
     replaceAll({
+      generationStartStep: 'full',
       input: {
         basic: workdata.input?.basic || {},
         cabinfo: workdata.input?.cabinfo || {},
