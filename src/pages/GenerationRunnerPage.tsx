@@ -109,6 +109,84 @@ type BoxSearchResponse = {
   msg?: string
 }
 
+function stripCsvQuotes(value: string) {
+  const trimmed = value.trim()
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1)
+  }
+  return trimmed
+}
+
+function quoteCsvValue(value: string) {
+  return `"${value.replace(/"/g, '""')}"`
+}
+
+function isGutterToken(value: string) {
+  return /^UG\d+/i.test(stripCsvQuotes(value))
+}
+
+function splitCsvTokens(value: string) {
+  const tokens: string[] = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < value.length; i += 1) {
+    const char = value[i]
+    const next = value[i + 1]
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '""'
+      i += 1
+      continue
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes
+      current += char
+      continue
+    }
+
+    if (char === ',' && !inQuotes) {
+      tokens.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  tokens.push(current.trim())
+  return tokens
+}
+
+function toUlfTokenList(value: unknown) {
+  const values = Array.isArray(value) ? value : value == null ? [] : [value]
+
+  return values.flatMap((item) => {
+    if (typeof item !== 'string') return [item]
+    return item.includes(',') ? splitCsvTokens(item) : [item]
+  })
+}
+
+function unwrapUlfResponse(data: unknown): Record<string, unknown> | null {
+  const record = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
+  const candidate =
+    record && 'ulf' in record
+      ? record.ulf
+      : record && 'result' in record
+        ? record.result
+        : record
+
+  return candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+    ? (candidate as Record<string, unknown>)
+    : null
+}
+
+// postLayout2Gtr はユニット上下のガター（配線スペース）補正を行うAPI。
+// 本来は配置済みユニットのULFを保ったままガター値だけ補正される想定だが、
+// APIレスポンスが unit_no ではなく unit_key 寄りの値になるケースがある。
+// ガタースペース編集画面が未接続のため、初期ガター値がAPI側の変換を誘発している
+// 可能性もある。原因切り分けが終わるまでは、保存前に unit_no 表示へ正規化する。
 const defaultBoxSortBy = [
   { key: 'i_box_w', order: 'asc' },
   { key: 'i_box_h', order: 'asc' },
@@ -274,18 +352,43 @@ export default function GenerationRunnerPage() {
     const map = new Map<string, number>()
     if (!ulfObj || typeof ulfObj !== 'object') return map
 
+    const stateUnits = useAppStore.getState().input.unit.list ?? []
+    const unitsByNo = new Map<string, UnitItem[]>()
+    const nextIndexByNo = new Map<string, number>()
+
+    stateUnits.forEach((unit) => {
+      const unitNo = unit.unit_no ?? unit.unitNo ?? unit.name
+      if (!unitNo) return
+
+      const key = String(unitNo)
+      unitsByNo.set(key, [...(unitsByNo.get(key) ?? []), unit])
+    })
+
     Object.keys(ulfObj)
       .sort((a, b) => Number(a) - Number(b))
       .forEach((k) => {
         const colNo = Number(k)
-        const arr = ulfObj[k] ?? []
+        const arr = toUlfTokenList(ulfObj[k])
 
         arr.forEach((token: any) => {
           let id: string | null = null
 
           if (typeof token === 'string') {
-            if (token.includes('@')) id = token.split('@').pop() ?? null
-            else if (/^\d+$/.test(token)) id = token
+            const rawToken = stripCsvQuotes(token)
+            if (isGutterToken(rawToken)) return
+
+            if (rawToken.includes('@')) id = rawToken.split('@').pop() ?? null
+            else if (/^\d+$/.test(rawToken)) id = rawToken
+            else {
+              const candidates = unitsByNo.get(rawToken) ?? []
+              const nextIndex = nextIndexByNo.get(rawToken) ?? 0
+              const hit = candidates[nextIndex]
+
+              if (hit?.id != null) {
+                id = String(hit.id)
+                nextIndexByNo.set(rawToken, nextIndex + 1)
+              }
+            }
           } else if (token && typeof token === 'object') {
             const raw = token.id ?? token.Unit_No ?? null
             if (typeof raw === 'string') {
@@ -302,6 +405,51 @@ export default function GenerationRunnerPage() {
       })
 
     return map
+  }, [])
+
+  const buildUlfForLayoutApi = useCallback((ulfObj: Record<string, any>) => {
+    if (!ulfObj || typeof ulfObj !== 'object') return ulfObj
+
+    const unitsByNo = new Map<string, UnitItem[]>()
+    const nextIndexByNo = new Map<string, number>()
+
+    ;(useAppStore.getState().input.unit.list ?? []).forEach((unit) => {
+      const unitNo = unit.unit_no ?? unit.unitNo ?? unit.name
+      if (!unitNo) return
+
+      const key = String(unitNo)
+      unitsByNo.set(key, [...(unitsByNo.get(key) ?? []), unit])
+    })
+
+    const nextUlf: Record<string, unknown[]> = {}
+
+    const replaceUnitNoWithUniqueToken = (item: string) => {
+      const rawToken = stripCsvQuotes(item)
+      if (isGutterToken(rawToken)) return item
+
+      const candidates = unitsByNo.get(rawToken) ?? []
+      const nextIndex = nextIndexByNo.get(rawToken) ?? 0
+      const hit = candidates[nextIndex]
+      const uniqueToken = hit?.unit_key ?? hit?.key ?? hit?.uid ?? hit?.id
+
+      if (uniqueToken == null || uniqueToken === '') return item
+
+      nextIndexByNo.set(rawToken, nextIndex + 1)
+      return quoteCsvValue(String(uniqueToken))
+    }
+
+    Object.keys(ulfObj)
+      .sort((a, b) => Number(a) - Number(b))
+      .forEach((key) => {
+        const value = ulfObj[key]
+        const rowItems = toUlfTokenList(value)
+
+        nextUlf[key] = rowItems.map((item) =>
+          typeof item === 'string' ? replaceUnitNoWithUniqueToken(item) : item,
+        )
+      })
+
+    return nextUlf
   }, [])
 
   const applyUlfToUnitsIRow = useCallback((ulfObj: Record<string, any>) => {
@@ -392,7 +540,10 @@ export default function GenerationRunnerPage() {
     }))
 
     const currentUlf = useAppStore.getState().layout.ulf ?? {}
-    const codes3 = { u: codes2, ulf: currentUlf }
+    // layout.ulf は画面/ULF出力用に unit_no を保持する。
+    // postUnits2Layout では同じ unit_no が複数あると1ユニットに潰れるため、
+    // API送信時だけ出現順で unit_key に置き換えて一意性を保つ。
+    const codes3 = { u: codes2, ulf: buildUlfForLayoutApi(currentUlf) }
     console.log('postUnits2Layout payload =', codes3)
     const res1 = await axios.post<LayoutItem[]>('/api/postUnits2Layout', codes3)
     setLayoutLayout(res1.data)
@@ -421,7 +572,7 @@ export default function GenerationRunnerPage() {
 
     setUnitNewFlag(1)
     pushLog('postBoxSvg 完了', 'success')
-  }, [getJoinedBoxW, pushLog, setLayoutField, setLayoutLayout, setUnitNewFlag])
+  }, [buildUlfForLayoutApi, getJoinedBoxW, pushLog, setLayoutField, setLayoutLayout, setUnitNewFlag])
 
   const updateLayoutStore2 = useCallback(async () => {
     const w = getJoinedBoxW()
@@ -482,6 +633,86 @@ export default function GenerationRunnerPage() {
     updateLayoutStore2,
   ])
 
+  const normalizeLayoutUlf = useCallback((rawUlf: unknown) => {
+    const ulfObj = unwrapUlfResponse(rawUlf)
+    if (!ulfObj) return null
+
+    const state = useAppStore.getState()
+    const tokenToUnitNo = new Map<string, string>()
+
+    ;(state.input.unit.list ?? []).forEach((unit) => {
+      const unitNo = String(unit.unit_no ?? unit.unitNo ?? unit.name ?? '')
+      if (!unitNo) return
+
+      ;[unit.unit_key, unit.key, unit.uid, unit.id, unitNo].forEach((value) => {
+        if (value != null && value !== '') tokenToUnitNo.set(String(value), unitNo)
+      })
+    })
+
+    ;(state.layout.layout ?? []).forEach((item) => {
+      const unitNo = String(item.unit_no ?? item.u ?? item.unitNo ?? '')
+      if (!unitNo) return
+
+      ;[item.unit_key, item.k, item.id, item.i, unitNo].forEach((value) => {
+        if (value != null && value !== '') tokenToUnitNo.set(String(value), unitNo)
+      })
+    })
+
+    const normalized: Record<string, unknown[]> = {}
+
+    Object.keys(ulfObj)
+      .sort((a, b) => Number(a) - Number(b))
+      .forEach((key) => {
+        const value = ulfObj[key]
+        const rowItems = Array.isArray(value) ? value : value == null ? [] : [value]
+
+        normalized[key] = rowItems.map((item) => {
+          if (typeof item !== 'string') return item
+
+          const unquoted = stripCsvQuotes(item)
+          const idTail = unquoted.includes('@') ? (unquoted.split('@').pop() ?? unquoted) : unquoted
+          const unitNo = tokenToUnitNo.get(unquoted) ?? tokenToUnitNo.get(idTail)
+
+          return unitNo ? quoteCsvValue(unitNo) : item
+        })
+      })
+
+    return normalized
+  }, [])
+
+  const refreshLayoutUlfForBox = useCallback(async (boxHeight: unknown) => {
+    const state = useAppStore.getState()
+    const currentLayout = state.layout.layout ?? []
+
+    if (!Array.isArray(currentLayout) || currentLayout.length === 0) {
+      pushLog('ULF再計算をスキップしました: 配置データがありません')
+      return
+    }
+
+    const gtrPayload = {
+      l: currentLayout,
+      g: state.layout.boxg,
+      n: state.layout.nrow,
+      boxh: boxHeight,
+    }
+
+    console.log('postLayout2Gtr payload =', gtrPayload)
+
+    // ガター補正後のULF再計算。API側で unit_key が混ざる可能性があるため、
+    // layout.ulf へ反映する前に normalizeLayoutUlf() で表示/ULF出力用の unit_no に戻す。
+    const gtrRes = await axios.post('/api/postLayout2Gtr', gtrPayload)
+    const nextUlf = normalizeLayoutUlf(gtrRes.data)
+
+    if (!nextUlf) {
+      console.warn('postLayout2Gtr response is not ULF-like', gtrRes.data)
+      pushLog('ULF再計算結果が不正なため、既存ULFを保持しました', 'error')
+      return
+    }
+
+    setLayoutUlf(nextUlf)
+    pushLog('最終配置から ULF を再計算しました', 'success')
+  }, [normalizeLayoutUlf, pushLog, setLayoutUlf])
+
   const ensureBoxSelected = useCallback(async () => {
     pushLog('箱選定を開始します')
 
@@ -499,6 +730,7 @@ export default function GenerationRunnerPage() {
 
     if (currentBoxKey) {
       pushLog(`箱選定済み: ${String(currentBoxKey)}`, 'success')
+      await refreshLayoutUlfForBox(currentBox?.i_box_h ?? layoutState.boxH ?? layoutState.boxh)
       return String(currentBoxKey)
     }
 
@@ -569,23 +801,13 @@ export default function GenerationRunnerPage() {
     }
 
     // BoxList.vue の goToSlect と同じく、箱高さを使ってガター/ULFを再計算する。
-    const gtrPayload = {
-      l: useAppStore.getState().layout.layout,
-      g: useAppStore.getState().layout.boxg,
-      n: useAppStore.getState().layout.nrow,
-      boxh: selectedBox.i_box_h,
-    }
-
-    console.log('postLayout2Gtr payload =', gtrPayload)
-
-    const gtrRes = await axios.post('/api/postLayout2Gtr', gtrPayload)
-    setLayoutUlf(gtrRes.data)
+    await refreshLayoutUlfForBox(selectedBox.i_box_h)
     setLayoutField('box', selectedBox)
     setLayoutField('boxcode', `確定${boxKey}`)
 
     pushLog(`箱選定完了: ${boxKey}`, 'success')
     return String(boxKey)
-  }, [pushLog, setLayoutField, setLayoutUlf])
+  }, [pushLog, refreshLayoutUlfForBox, setLayoutField])
 
   const saveSvgData2 = useCallback(async () => {
     pushLog('最終SVG保存を開始します')
