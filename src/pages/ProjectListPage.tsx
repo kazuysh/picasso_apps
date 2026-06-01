@@ -38,6 +38,7 @@ type Project = {
 
 type WorkdataRecord = {
   UID?: string;
+  status?: string;
   created?: string;
   updated?: string;
   data?: Partial<AppState>;
@@ -191,7 +192,7 @@ export default function ProjectListPage() {
             },
           ],
         },
-        collection: "workdata",
+        collection: "storeddata",
         sortkey: "created",
         sortorder: "asc",
       };
@@ -218,7 +219,7 @@ export default function ProjectListPage() {
           projectName: basic?.subjectName || basic?.drawingsubjectName || "",
           assignee: "XXXXXX",
           updatedAt: formatDate(item?.updated || item?.created),
-          status: "設計中",
+          status: item?.status || "設計中",
           workdata: item?.data || {},
         };
       });
