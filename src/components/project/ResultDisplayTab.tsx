@@ -6,6 +6,7 @@ import {
   Box,
   Button,
   Divider,
+  IconButton,
   Paper,
   Stack,
   Table,
@@ -14,11 +15,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
+import EditIcon from '@mui/icons-material/Edit'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useAppStore } from '../../stores/useAppStore'
+import BoxListDialog from './BoxListDialog'
 
 type AnyRecord = Record<string, any>
 
@@ -88,7 +92,9 @@ export default function ResultDisplayTab() {
   const ulf = layout.ulf ?? {}
   const layoutInfo = layout.layout ?? {}
   const drawingNo = basic.drawingNoTemp ?? ''
+  const cabinetName = box.code ?? ''
   const [sessionUserID, setSessionUserID] = useState('')
+  const [boxListOpen, setBoxListOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -143,18 +149,15 @@ export default function ResultDisplayTab() {
 
   const infoRows: InfoRow[] = useMemo(() => {
     return [
-      { label: 'キャビネット品名', value: box.code ?? '' },
+      { label: 'キャビネット品名', value: cabinetName },
       { label: '内器高さ', value: cabinfo.support_height ?? '' },
       { label: '移動板', value: box.move_board ?? '' },
       { label: '入出線位置（入線）', value: cabinfo.input_wire ?? '' },
       { label: '入出線位置（出線）', value: cabinfo.output_wire ?? '' },
       { label: '仕様', value: basic.major_specification ?? '' },
       { label: '省庁', value: basic.minor_specification2 ?? '' },
-      { label: 'ユニットレイアウト（１）', value: joinValue(ulf?.['1']) },
-      { label: 'ユニットレイアウト（２）', value: joinValue(ulf?.['2']) },
-      { label: 'ユニットレイアウト（３）', value: joinValue(ulf?.['3']) },
     ]
-  }, [basic, box, cabinfo, ulf])
+  }, [basic, box, cabinetName, cabinfo])
 
   const ulfRows = useMemo(() => {
     const rows: { level: number; width: ReactNode; items: string }[] = []
@@ -258,10 +261,16 @@ export default function ResultDisplayTab() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h6">箱選定結果表示</Typography>
-
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} useFlexGap flexWrap="wrap">
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          <Typography variant="h6">{cabinetName || 'キャビネット品名結果'}</Typography>
+          <Tooltip title="箱選定">
+            <IconButton size="small" onClick={() => setBoxListOpen(true)} aria-label="箱選定">
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+        <Stack direction="row" spacing={1} justifyContent="flex-end" useFlexGap flexWrap="wrap">
           <Button variant="contained" startIcon={<DownloadIcon />} onClick={handleDownloadUlf}>
             ULF DOWNLOAD
           </Button>
@@ -272,7 +281,9 @@ export default function ResultDisplayTab() {
             詳細表示（PDF）
           </Button>
         </Stack>
-      </Paper>
+      </Stack>
+
+      <BoxListDialog open={boxListOpen} onClose={() => setBoxListOpen(false)} />
 
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
