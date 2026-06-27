@@ -14,8 +14,10 @@ import {
   List,
   ListItem,
   ListItemText,
+  MenuItem,
   Paper,
   Stack,
+  TextField,
   Typography,
   Dialog,
   DialogTitle,
@@ -107,6 +109,10 @@ type BoxSearchResponse = {
     total?: number
   }
   msg?: string
+}
+
+function getLayoutBoxHeight(layoutState: any) {
+  return layoutState?.box?.i_box_h ?? layoutState?.boxh ?? layoutState?.boxH ?? 0
 }
 
 function stripCsvQuotes(value: string) {
@@ -550,7 +556,7 @@ export default function GenerationRunnerPage() {
     pushLog('postUnits2Layout 完了')
 
     const w = getJoinedBoxW()
-    const boxh = String(useAppStore.getState().layout.boxh ?? 0)
+    const boxh = String(getLayoutBoxHeight(useAppStore.getState().layout))
     setLayoutField('backgroundSvgUrl', `/api/getTemplate?w=${w}&h=${boxh}`)
 
     const latestLayout = useAppStore.getState().layout.layout
@@ -576,11 +582,12 @@ export default function GenerationRunnerPage() {
 
   const updateLayoutStore2 = useCallback(async () => {
     const w = getJoinedBoxW()
+    const layoutState = useAppStore.getState().layout
     const para = {
-      l: useAppStore.getState().layout.layout,
+      l: layoutState.layout,
       w,
-      g: (useAppStore.getState().layout.boxg ?? []).join(','),
-      h: String(useAppStore.getState().layout.boxh ?? 0),
+      g: (layoutState.boxg ?? []).join(','),
+      h: String(getLayoutBoxHeight(layoutState)),
     }
 
     await axios.post('/api/postBoxSvg2', para)
@@ -730,7 +737,7 @@ export default function GenerationRunnerPage() {
 
     if (currentBoxKey) {
       pushLog(`箱選定済み: ${String(currentBoxKey)}`, 'success')
-      await refreshLayoutUlfForBox(currentBox?.i_box_h ?? layoutState.boxH ?? layoutState.boxh)
+      await refreshLayoutUlfForBox(getLayoutBoxHeight(layoutState))
       return String(currentBoxKey)
     }
 
@@ -1035,6 +1042,23 @@ export default function GenerationRunnerPage() {
               <Alert severity="info" sx={{ mb: 1.5 }}>
                 今回の開始点: {startStepLabel}
               </Alert>
+
+              <TextField
+                select
+                fullWidth
+                size="small"
+                label="開始点"
+                value={generationStartStep}
+                onChange={(event) =>
+                  setGenerationStartStep(event.target.value as 'full' | 'initialPlacement' | 'lineUp')
+                }
+                disabled={running}
+                sx={{ mb: 1.5 }}
+              >
+                <MenuItem value="full">回路生成から</MenuItem>
+                <MenuItem value="initialPlacement">AI初期配置から</MenuItem>
+                <MenuItem value="lineUp">整列配置から</MenuItem>
+              </TextField>
 
               <List dense>
                 {flowSteps.map((step, index) => {

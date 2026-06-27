@@ -12,6 +12,12 @@ import {
   Paper,
   Stack,
   Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Tabs,
   Typography,
 } from "@mui/material";
@@ -97,6 +103,51 @@ function FieldView(props: FieldViewProps) {
   );
 }
 
+type CabinetOptionSummaryProps = {
+  data: KeyValueRecord;
+};
+
+function CabinetOptionSummary(props: CabinetOptionSummaryProps) {
+  const rows = Array.isArray(props.data?.rows) ? props.data.rows : [];
+
+  if (rows.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        データがありません
+      </Typography>
+    );
+  }
+
+  return (
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>name</TableCell>
+            <TableCell>optionpartscode</TableCell>
+            <TableCell align="right">数量</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.map((row: KeyValueRecord, index: number) => (
+            <TableRow key={row.__rowId || `${row.name || "row"}-${index}`}>
+              <TableCell sx={{ wordBreak: "break-word" }}>
+                {String(row.name ?? "")}
+              </TableCell>
+              <TableCell sx={{ wordBreak: "break-word" }}>
+                {String(row.optionpartscode ?? "")}
+              </TableCell>
+              <TableCell align="right">
+                {String(row.Quantity_Pieces ?? "")}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
 export default function ProjectDetailPage() {
   const navigate = useNavigate();
 
@@ -132,8 +183,15 @@ export default function ProjectDetailPage() {
   const basicInfoItem = config?.BasicInfoOption || {};
   const cabinetInfoItem = config?.CabinetinfoOption || {};
   const cabinetOptionItem = config?.CabinetOption || {};
-  const basicInfoDict = basicInfoItem?.BasicinfoDict || {};
-  const cabinetInfoDict = cabinetInfoItem?.CabinetinfoDict || {};
+  const fieldLabelDict = config?.FieldLabelDict || {};
+  const basicInfoDict = {
+    ...(basicInfoItem?.BasicinfoDict || {}),
+    ...fieldLabelDict,
+  };
+  const cabinetInfoDict = {
+    ...(cabinetInfoItem?.CabinetinfoDict || {}),
+    ...fieldLabelDict,
+  };
 
   const handleSaveBasicInfo = (nextBasic: Record<string, any>) => {
     const store: any = (useAppStore as any).getState?.();
@@ -334,7 +392,7 @@ export default function ProjectDetailPage() {
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <FieldView data={input.caboption || {}} />
+                <CabinetOptionSummary data={input.caboption || {}} />
               </AccordionDetails>
             </Accordion>
 
@@ -407,6 +465,7 @@ export default function ProjectDetailPage() {
         open={cabinetOptionDialogOpen}
         initialData={input.caboption || {}}
         item={cabinetOptionItem}
+        fieldLabelDict={fieldLabelDict}
         onClose={() => setCabinetOptionDialogOpen(false)}
         onSave={handleSaveCabinetOption}
       />

@@ -1,0 +1,504 @@
+{
+  "source_counts": {
+    "BasicInfoOption.BasicinfoDict": 10,
+    "CabinetinfoOption.CabinetinfoDict": 2,
+    "CabinetOption.OptionDict": 152
+  },
+  "merged_count": 164,
+  "conflict_count": 0,
+  "conflicts": [],
+  "sources": {
+    "AdsSetMeth": [
+      "CabinetOption.OptionDict"
+    ],
+    "Air": [
+      "CabinetOption.OptionDict"
+    ],
+    "Amps": [
+      "CabinetOption.OptionDict"
+    ],
+    "Amps_Concent": [
+      "CabinetOption.OptionDict"
+    ],
+    "AttachMeth_Pannel": [
+      "CabinetOption.OptionDict"
+    ],
+    "Attach_Louver": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxDlim_PlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxDlim_PlSta": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxDlim_WireSupRail": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxHlim_PlSta": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxHlim_WireSupRail": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxMatelim_EESwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxTypelim_PlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxTypelim_WireSupRail": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxWlim": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxWlim_ConcrePlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxWlim_PlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "BoxWlim_PlSta": [
+      "CabinetOption.OptionDict"
+    ],
+    "Color_Base": [
+      "CabinetOption.OptionDict"
+    ],
+    "Color_Louver": [
+      "CabinetOption.OptionDict"
+    ],
+    "Color_SpDuct": [
+      "CabinetOption.OptionDict"
+    ],
+    "Conduit": [
+      "CabinetOption.OptionDict"
+    ],
+    "ContArr_ContSwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "ContArr_PushBtn": [
+      "CabinetOption.OptionDict"
+    ],
+    "Diam_Buzzer": [
+      "CabinetOption.OptionDict"
+    ],
+    "Diam_ContSwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "Diam_Lamp": [
+      "CabinetOption.OptionDict"
+    ],
+    "Diam_Patlite": [
+      "CabinetOption.OptionDict"
+    ],
+    "Diam_PushBtn": [
+      "CabinetOption.OptionDict"
+    ],
+    "IPRating_Louver": [
+      "CabinetOption.OptionDict"
+    ],
+    "LampVolt": [
+      "CabinetOption.OptionDict"
+    ],
+    "LirhtColor": [
+      "CabinetOption.OptionDict"
+    ],
+    "LoadCap_ConcrePlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "LoadCap_PMCPlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "LoadCap_PlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "LoadCap_PlSta": [
+      "CabinetOption.OptionDict"
+    ],
+    "Location_Louver": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Ammeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Base": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Buzzer": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_CabConect": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_CabEntry": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_CoBolt": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Concent": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_ConcrePlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_ContSwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Cuppling": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_DrUnit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_EESwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_EneMeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Eyebolt": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Grommet": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_LWallFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Lamp": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Louver": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_MtMeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_PMCPlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_PlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_PlSta": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_PushBtn": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_SpDuct": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Viewwin": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_Voltmeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_WHwin": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_WallFhole": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_WallFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Manufacturer_WireSupRail": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_Base": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_CabConect": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_ConcrePlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_Cuppling": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_DrUnit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_LWallFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_Plate": [
+      "CabinetOption.OptionDict"
+    ],
+    "Material_WallFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "MeterAmps": [
+      "CabinetOption.OptionDict"
+    ],
+    "MeterSize": [
+      "CabinetOption.OptionDict"
+    ],
+    "NockDiam": [
+      "CabinetOption.OptionDict"
+    ],
+    "OutsideDiam": [
+      "CabinetOption.OptionDict"
+    ],
+    "PlDiamlim_ConcrePlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "PlDiamlim_PMCPlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "PlDiamlim_PlFit": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pole_Concent": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Base": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Buzzer": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_CoSquare": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Cuppling": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_GroPol": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_GroTer": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Overlap": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Pannel": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Plate": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_RedPointer": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_SpDuct": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Swi": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Transe": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Weld": [
+      "CabinetOption.OptionDict"
+    ],
+    "Pre_Win": [
+      "CabinetOption.OptionDict"
+    ],
+    "ProductSec": [
+      "CabinetOption.OptionDict"
+    ],
+    "Purpose": [
+      "CabinetOption.OptionDict"
+    ],
+    "Quantity_AnaOutput": [
+      "CabinetOption.OptionDict"
+    ],
+    "Quantity_Anchor": [
+      "CabinetOption.OptionDict"
+    ],
+    "Quantity_Circuits": [
+      "CabinetOption.OptionDict"
+    ],
+    "Quantity_Notch": [
+      "CabinetOption.OptionDict"
+    ],
+    "Quantity_Pieces": [
+      "CabinetOption.OptionDict"
+    ],
+    "Quantity_Socket": [
+      "CabinetOption.OptionDict"
+    ],
+    "RstMeth": [
+      "CabinetOption.OptionDict"
+    ],
+    "ScrSize": [
+      "CabinetOption.OptionDict"
+    ],
+    "Series_RmSwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "ServEntr": [
+      "CabinetOption.OptionDict"
+    ],
+    "Shape_SpDuct": [
+      "CabinetOption.OptionDict"
+    ],
+    "SigType_EneMeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "SigType_MtMeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "SignWir": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_BaseD": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_BaseH": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_BaseW": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_DrUnitL": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_DrUnitW": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_Length": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_LouverL": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_LouverW": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_SpDuctD": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_SpDuctH": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_SpDuctW": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_ViewwinL": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_ViewwinW": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_WHwinL": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_WHwinW": [
+      "CabinetOption.OptionDict"
+    ],
+    "Size_Win": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_Concent": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_EneMeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_Fan": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_FixingPt": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_Lamp": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_Louver": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_Patlite": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_PlSta": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_PushBtn": [
+      "CabinetOption.OptionDict"
+    ],
+    "Type_RmSwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_Buzzer": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_Concent": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_EESwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_Lamp": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_Louver": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_Patlite": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_RmSwi": [
+      "CabinetOption.OptionDict"
+    ],
+    "Volt_Voltmeter": [
+      "CabinetOption.OptionDict"
+    ],
+    "WinGlass_Viewwin": [
+      "CabinetOption.OptionDict"
+    ],
+    "WinGlass_WHwin": [
+      "CabinetOption.OptionDict"
+    ],
+    "bordName": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "category": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "category2": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "category3": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "drawingNoTemp": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "frequency": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "input_wire": [
+      "CabinetinfoOption.CabinetinfoDict"
+    ],
+    "major_specification": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "minor_specification": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "output_wire": [
+      "CabinetinfoOption.CabinetinfoDict"
+    ],
+    "powercompany": [
+      "BasicInfoOption.BasicinfoDict"
+    ],
+    "search": [
+      "CabinetOption.OptionDict"
+    ],
+    "subjectName": [
+      "BasicInfoOption.BasicinfoDict"
+    ]
+  }
+}

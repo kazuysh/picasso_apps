@@ -6,6 +6,7 @@ import {
     AppBar,
     Box,
     Button,
+    Checkbox,
     CircularProgress,
     Dialog,
     DialogActions,
@@ -13,9 +14,11 @@ import {
     DialogContentText,
     DialogTitle,
     FormControl,
+    FormControlLabel,
     InputLabel,
     MenuItem,
     Select,
+    TextField,
     Toolbar,
     Typography,
 } from "@mui/material";
@@ -23,18 +26,33 @@ import type { SelectChangeEvent } from "@mui/material/Select";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import SaveIcon from "@mui/icons-material/Save";
 import LogoffDialog from "./auth/LogoffDialog";
-import { saveWork } from "../api/saveWork";
 import { useAppStore } from "../stores/useAppStore";
+import { useSessionStore } from "../stores/useSessionStore";
 
-const statusOptions = ["設計中", "確認中", "承認待ち", "完了"];
+const statusOptions = ["設計中", "確認中", "完了"];
+
+type SessionUser = {
+    user_name: string;
+    id_admin: number;
+    full_name: string;
+    update: string;
+};
+
+type GetSessionUserResponse = {
+    user: SessionUser | null;
+};
 
 export default function AppHeader() {
     const location = useLocation();
     const navigate = useNavigate();
     const input = useAppStore((state) => state.input);
+    const updateInputData = useAppStore((state) => state.updateInputData);
+    const clearSession = useSessionStore((state) => state.clearSession);
 
     const [storeDialogOpen, setStoreDialogOpen] = useState(false);
     const [status, setStatus] = useState("設計中");
+    const [storeDrawingNo, setStoreDrawingNo] = useState("");
+    const [copyToStore, setCopyToStore] = useState(true);
     const [storing, setStoring] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
 
@@ -48,6 +66,8 @@ export default function AppHeader() {
     const handleOpenStoreDialog = () => {
         setErrorMessage("");
         setStatus("設計中");
+        setStoreDrawingNo(String(drawingNo || ""));
+        setCopyToStore(true);
         setStoreDialogOpen(true);
     };
 
@@ -65,10 +85,21 @@ export default function AppHeader() {
     };
 
     const handleStore = async () => {
-        const dno = String(drawingNo || "").trim();
+        const originalDno = String(drawingNo || "").trim();
+        const dno = String(storeDrawingNo || "").trim();
 
         if (!dno) {
             setErrorMessage("図面番号がないため保管できません。");
+            return;
+        }
+
+        if (copyToStore && dno === originalDno) {
+            setErrorMessage("コピーして保管する場合は、元の図面番号とは異なる図面番号を入力してください。");
+            return;
+        }
+
+        if (!copyToStore && dno !== originalDno) {
+            setErrorMessage("図面番号を変更する場合は、コピーして保管にチェックしてください。");
             return;
         }
 
@@ -76,28 +107,50 @@ export default function AppHeader() {
         setErrorMessage("");
 
         try {
-            await saveWork();
-
-            const sessionRes = await axios.get("/api/sessioncheck", {
+            const sessionRes = await axios.get<GetSessionUserResponse>("/api/GetSessionUser", {
                 withCredentials: true,
             });
-            const user = sessionRes.data?.session || sessionRes.data?.userID || "";
+            const sessionUser = sessionRes.data?.user;
 
-            if (!user) {
-                throw new Error("sessioncheck からユーザーIDを取得できませんでした。");
+            if (!sessionUser) {
+                clearSession();
+                navigate("/login", { replace: true });
+                return;
             }
 
+            const latestState = useAppStore.getState();
+            const nextInput = {
+                ...latestState.input,
+                basic: {
+                    ...(latestState.input?.basic ?? {}),
+                    drawingNoTemp: dno,
+                },
+            };
+
             await axios.post(
-                "/api/postWork2Stored",
+                "/api/saveWork",
                 {
-                    user,
-                    dno,
-                    overwrite: true,
-                    status,
+                    input: nextInput,
+                    output: latestState.output,
+                    workblock: latestState.workblock,
+                    layout: latestState.layout,
                 },
                 { withCredentials: true },
             );
 
+            await axios.post(
+                "/api/postWork2Stored",
+                {
+                    user: sessionUser.user_name,
+                    dno,
+                    overwrite: !copyToStore,
+                    status,
+                    full_name: sessionUser.full_name,
+                },
+                { withCredentials: true },
+            );
+
+            updateInputData(nextInput);
             setStoreDialogOpen(false);
         } catch (error: any) {
             const detail = error?.response?.data?.detail;
@@ -141,12 +194,30 @@ export default function AppHeader() {
                 <DialogTitle>保管確認</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        保管時のステータスを選択してください。
+                        保管内容を確認してください。
                     </DialogContentText>
 
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        図面番号: {String(drawingNo || "")}
-                    </Typography>
+                    <TextField
+                        fullWidth
+                        size="small"
+                        label="図面番号"
+                        value={storeDrawingNo}
+                        onChange={(event) => setStoreDrawingNo(event.target.value)}
+                        inputProps={{ maxLength: 16 }}
+                        helperText={`${storeDrawingNo.length}/16`}
+                        sx={{ mt: 2 }}
+                    />
+
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={copyToStore}
+                                onChange={(event) => setCopyToStore(event.target.checked)}
+                            />
+                        }
+                        label="コピーして保管"
+                        sx={{ mt: 1 }}
+                    />
 
                     <FormControl fullWidth size="small" sx={{ mt: 2 }}>
                         <InputLabel id="store-status-label">ステータス</InputLabel>

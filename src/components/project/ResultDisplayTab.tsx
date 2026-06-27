@@ -22,6 +22,7 @@ import DownloadIcon from '@mui/icons-material/Download'
 import EditIcon from '@mui/icons-material/Edit'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useAppStore } from '../../stores/useAppStore'
+import BoxScene3dPanel from './BoxScene3dPanel'
 import BoxListDialog from './BoxListDialog'
 
 type AnyRecord = Record<string, any>
@@ -333,6 +334,8 @@ export default function ResultDisplayTab() {
           </TableContainer>
         )}
       </Paper>
+
+      <BoxScene3dPanel input={input} layout={layout} />
 
       <Divider />
 

@@ -413,16 +413,23 @@ type CabinetOptionDialogProps = {
   open: boolean;
   initialData: KeyValueRecord;
   item: KeyValueRecord;
+  fieldLabelDict?: Record<string, string>;
   onClose: () => void;
   onSave: (nextCabOption: KeyValueRecord) => void;
 };
 
 export default function CabinetOptionDialog(props: CabinetOptionDialogProps) {
-  const { open, initialData, item, onClose, onSave } = props;
+  const { open, initialData, item, fieldLabelDict, onClose, onSave } = props;
 
   const optionCaption = useMemo(() => item?.optionSelect1 || [], [item]);
   const onceButtonConfig = useMemo(() => item?.optionSelect2 || {}, [item]);
-  const optionDict = useMemo(() => item?.OptionDict || {}, [item]);
+  const optionDict = useMemo(
+    () => ({
+      ...(item?.OptionDict || {}),
+      ...(fieldLabelDict || {}),
+    }),
+    [fieldLabelDict, item],
+  );
 
   const [draft, setDraft] = useState<KeyValueRecord>({ rows: [] });
   const [optionListOpen, setOptionListOpen] = useState(false);

@@ -8,6 +8,11 @@ import {
   CardContent,
   Chip,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
@@ -38,6 +43,7 @@ type Project = {
 
 type WorkdataRecord = {
   UID?: string;
+  full_name?: string;
   status?: string;
   created?: string;
   updated?: string;
@@ -157,6 +163,7 @@ export default function ProjectListPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"new" | "copy">("new");
+  const [copyTargetDialogOpen, setCopyTargetDialogOpen] = useState(false);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -217,7 +224,7 @@ export default function ProjectListPage() {
           id: (currentPage - 1) * PAGE_SIZE + index + 1,
           drawingNo: basic?.drawingNoTemp || "",
           projectName: basic?.subjectName || basic?.drawingsubjectName || "",
-          assignee: "XXXXXX",
+          assignee: item?.full_name || "",
           updatedAt: formatDate(item?.updated || item?.created),
           status: item?.status || "設計中",
           workdata: item?.data || {},
@@ -308,7 +315,7 @@ export default function ProjectListPage() {
 
   const handleCopyCreate = () => {
     if (!selectedProject) {
-      alert("コピー元の案件を選択してください。");
+      setCopyTargetDialogOpen(true);
       return;
     }
     setDialogMode("copy");
@@ -519,6 +526,25 @@ export default function ProjectListPage() {
         placeholder="図面番号を入力してください"
         onClose={() => setDialogOpen(false)}
       />
+
+      <Dialog
+        open={copyTargetDialogOpen}
+        onClose={() => setCopyTargetDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>コピー対象の選択</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            一覧の中からコピー対象の案件を選択してください。
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCopyTargetDialogOpen(false)} variant="contained">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

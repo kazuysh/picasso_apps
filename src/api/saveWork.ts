@@ -11,5 +11,5 @@ export async function saveWork() {
         layout: state.layout,
     }
 
-    return axios.post('/api/saveWork', saveData)
+    return axios.post('/api/saveWork', saveData, { withCredentials: true })
 }

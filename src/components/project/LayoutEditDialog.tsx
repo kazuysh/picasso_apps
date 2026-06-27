@@ -71,6 +71,10 @@ function normalizeBoxW(value: any): any[] {
   return Array.isArray(value) && value.length > 0 ? value : DEFAULT_BOX_W;
 }
 
+function getLayoutBoxHeight(layoutState: AnyRecord | null | undefined) {
+  return layoutState?.box?.i_box_h ?? layoutState?.boxh ?? layoutState?.boxH ?? 0;
+}
+
 function makeClassifiedData(boxw: any[]) {
   const cumulative = boxw.map(Number).map(
     (
@@ -162,6 +166,10 @@ export default function LayoutEditDialog({
   const boxg = useMemo(() => normalizeBoxG(layout?.boxg), [layout?.boxg]);
   const boxw = useMemo(() => normalizeBoxW(layout?.boxw), [layout?.boxw]);
   const classifiedData = useMemo(() => makeClassifiedData(boxw), [boxw]);
+  const boxHeight = useMemo(
+    () => getLayoutBoxHeight(layout),
+    [layout?.box?.i_box_h, layout?.boxH, layout?.boxh],
+  );
   const boxCode =
     layout?.boxcode ?? layout?.box?.box_key ?? layout?.box?.code ?? "確定";
 
@@ -205,7 +213,7 @@ export default function LayoutEditDialog({
         l: currentLayout,
         w: boxw.map(String).join(","),
         g: boxg.map(String).join(","),
-        h: String(layout?.boxh ?? layout?.boxH ?? 0),
+        h: String(boxHeight),
       };
 
       // 編集ダイアログでは、配置結果SVG(layout.svg / postBoxSvg4)ではなく、
@@ -223,7 +231,7 @@ export default function LayoutEditDialog({
     } finally {
       setGeneratingSvg(false);
     }
-  }, [boxg, boxw, layout?.boxH, layout?.boxh, layout?.layout, updateSvgDom]);
+  }, [boxHeight, boxg, boxw, layout?.layout, updateSvgDom]);
 
   const updateLineUp = useCallback(
     async (nextLayoutList: AnyRecord[]) => {
@@ -250,7 +258,7 @@ export default function LayoutEditDialog({
             l: ldata,
             w: boxw.map(String).join(","),
             g: boxg.map(String).join(","),
-            h: String(layout?.boxh ?? boxH ?? 0),
+            h: String(layout?.box?.i_box_h ?? layout?.boxh ?? boxH ?? 0),
           };
           const svgRes = await axios.post("/api/postBoxSvg2", svgPayload);
           const nextSvg =
@@ -447,7 +455,7 @@ export default function LayoutEditDialog({
 
           <Stack direction="row" spacing={2} flexWrap="wrap">
             <Typography variant="body2">
-              高さ: {layout?.boxH ?? layout?.boxh ?? ""}
+              高さ: {boxHeight}
             </Typography>
             <Typography variant="body2">
               列幅: {JSON.stringify(layout?.floor ?? {})}

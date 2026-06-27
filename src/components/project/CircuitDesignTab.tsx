@@ -13,9 +13,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
-import { useAppStore } from "../../stores/useAppStore";
+import { useAppStore, type AnyRecord } from "../../stores/useAppStore";
 import BlockListDialog from "./BlockListDialog";
 import CircuitEditDialog from "./CircuitEditDialog";
+import UnitAddDialog from "./UnitAddDialog";
 
 type CircuitDesignTabProps = {
   graphdata?: any;
@@ -75,6 +76,47 @@ function getNodeLabel(node: any) {
       node?.unit_no ??
       node?.id ??
       node?.name,
+  );
+}
+
+function isInputOutputNode(node: AnyRecord) {
+  const id = getNodeId(node);
+  const label = getNodeLabel(node);
+  const typeCandidates = [
+    node?.node_type,
+    node?.nodeType,
+    node?.type,
+    node?.node,
+    node?.data?.node_type,
+    node?.data?.nodeType,
+    node?.data?.type,
+    node?.data?.node,
+  ]
+    .map((value) => normalize(value).toLowerCase())
+    .filter(Boolean);
+
+  const inputOutputTypes = new Set([
+    "in",
+    "out",
+    "input",
+    "output",
+    "source",
+    "sink",
+    "terminal_input",
+    "terminal_output",
+    "入力",
+    "出力",
+  ]);
+
+  if (typeCandidates.some((value) => inputOutputTypes.has(value))) {
+    return true;
+  }
+
+  return (
+    /^IN(?:[#_-]|$)/i.test(id) ||
+    /^OUT(?:[#_-]|$)/i.test(id) ||
+    /^入力(?:\d+|[#_-].*)?$/.test(label) ||
+    /^出力(?:\d+|[#_-].*)?$/.test(label)
   );
 }
 
@@ -303,6 +345,12 @@ function MermaidView({ graphdata, zoom, onNodeClick }: MermaidViewProps) {
 
           nodeEl.dataset.originalNodeId = clickMeta.originalNodeId;
           nodeEl.dataset.deviceBlockKey = clickMeta.deviceBlockKey;
+
+          if (isInputOutputNode(clickMeta.node)) {
+            nodeEl.style.cursor = "default";
+            return;
+          }
+
           nodeEl.style.cursor = "pointer";
           nodeEl.setAttribute("role", "button");
           nodeEl.setAttribute("tabindex", "0");
@@ -367,6 +415,63 @@ function formatZoomPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
+function getGraphNodeIdFromUnit(unit: AnyRecord) {
+  const unitNo = normalize(unit?.unit_no ?? unit?.unitNo ?? unit?.name ?? unit?.u);
+  const unitId = normalize(unit?.id ?? unit?.unit_i ?? unit?.i);
+
+  if (!unitNo) return "";
+  return unitId ? `${unitNo}@${unitId}` : unitNo;
+}
+
+function appendUnitsToGraphdata(graphdata: unknown, units: AnyRecord[]) {
+  const normalized = normalizeGraphdata(graphdata);
+  const nextNodes = [...normalized.nodes];
+  const existingNodeIds = new Set(nextNodes.map(getNodeId).filter(Boolean));
+
+  for (const unit of units) {
+    const nodeId = getGraphNodeIdFromUnit(unit);
+    if (!nodeId || existingNodeIds.has(nodeId)) continue;
+
+    const label = normalize(unit?.unit_no ?? unit?.unitNo ?? unit?.name ?? nodeId);
+    nextNodes.push({
+      id: nodeId,
+      label,
+      unit_no: label,
+      unit_key: unit?.unit_key,
+    });
+    existingNodeIds.add(nodeId);
+  }
+
+  const nextGraphdata = {
+    ...(graphdata || {}),
+    nodes: nextNodes,
+    edges: normalized.edges,
+    node: nextNodes,
+    edge: normalized.edges,
+  };
+
+  return nextGraphdata;
+}
+
+function removeUnitFromGraphdata(graphdata: unknown, nodeId: string) {
+  const normalized = normalizeGraphdata(graphdata);
+  const removeId = normalize(nodeId);
+  const nextNodes = normalized.nodes.filter((node: AnyRecord) => getNodeId(node) !== removeId);
+  const nextEdges = normalized.edges.filter((edge: EdgeLike) => {
+    const from = getEdgeFrom(edge);
+    const to = getEdgeTo(edge);
+    return from !== removeId && to !== removeId;
+  });
+
+  return {
+    ...(graphdata || {}),
+    nodes: nextNodes,
+    edges: nextEdges,
+    node: nextNodes,
+    edge: nextEdges,
+  };
+}
+
 export default function CircuitDesignTab({
   graphdata,
   onGraphdataChange,
@@ -374,6 +479,7 @@ export default function CircuitDesignTab({
   const devices = useAppStore((state) => state.input?.device?.list || []);
   const [blockListDialogOpen, setBlockListDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [unitAddDialogOpen, setUnitAddDialogOpen] = useState(false);
   const [selectedOriginalNodeId, setSelectedOriginalNodeId] =
     useState<string>("");
   const [selectedDeviceBlockKey, setSelectedDeviceBlockKey] =
@@ -392,13 +498,16 @@ export default function CircuitDesignTab({
     deviceCount: devices.length,
     blockListDialogOpen,
     editDialogOpen,
+    unitAddDialogOpen,
     selectedOriginalNodeId,
     selectedDeviceBlockKey,
     zoom,
-    sampleDeviceIds: devices.slice(0, 10).map((item: any) => item?.id),
+    sampleDeviceIds: devices.slice(0, 10).map((item) => item?.id),
   });
 
   const handleNodeClick = (info: MermaidNodeClickInfo) => {
+    if (isInputOutputNode(info.node)) return;
+
     setSelectedOriginalNodeId(info.originalNodeId);
     setSelectedDeviceBlockKey(info.deviceBlockKey);
     setBlockListDialogOpen(true);
@@ -414,6 +523,42 @@ export default function CircuitDesignTab({
 
   const handleZoomReset = () => {
     setZoom(ZOOM_INITIAL);
+  };
+
+  const handleUnitsAdded = (units: AnyRecord[]) => {
+    if (!onGraphdataChange || units.length === 0) return;
+    onGraphdataChange(appendUnitsToGraphdata(graphdata, units));
+  };
+
+  const handleDeleteSelectedUnit = () => {
+    const nodeId = normalize(selectedOriginalNodeId);
+    const unitInstanceId = normalize(selectedDeviceBlockKey || getSuffixAfterAt(nodeId));
+    if (!nodeId) return;
+
+    useAppStore.setState((state) => ({
+      ...state,
+      input: {
+        ...state.input,
+        unit: {
+          ...state.input.unit,
+          list: (state.input.unit.list ?? []).filter(
+            (unit) => normalize(unit.id) !== unitInstanceId,
+          ),
+          newflag: 1,
+        },
+        device: {
+          ...state.input.device,
+          list: (state.input.device.list ?? []).filter(
+            (device) => normalize(device.id) !== unitInstanceId,
+          ),
+        },
+      },
+    }));
+
+    onGraphdataChange?.(removeUnitFromGraphdata(graphdata, nodeId));
+    setBlockListDialogOpen(false);
+    setSelectedOriginalNodeId("");
+    setSelectedDeviceBlockKey("");
   };
 
   return (
@@ -436,6 +581,14 @@ export default function CircuitDesignTab({
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddIcon fontSize="small" />}
+            onClick={() => setUnitAddDialogOpen(true)}
+          >
+            ユニット追加
+          </Button>
         </Stack>
 
         <Stack direction="row" alignItems="center" spacing={1}>
@@ -489,6 +642,7 @@ export default function CircuitDesignTab({
         deviceBlockKey={selectedDeviceBlockKey}
         items={devices}
         onClose={() => setBlockListDialogOpen(false)}
+        onDeleteUnit={handleDeleteSelectedUnit}
       />
 
       <CircuitEditDialog
@@ -496,6 +650,12 @@ export default function CircuitDesignTab({
         graphdata={graphdata}
         onClose={() => setEditDialogOpen(false)}
         onChange={onGraphdataChange}
+      />
+
+      <UnitAddDialog
+        open={unitAddDialogOpen}
+        onClose={() => setUnitAddDialogOpen(false)}
+        onUnitsAdded={handleUnitsAdded}
       />
     </>
   );
