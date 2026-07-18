@@ -23,6 +23,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useAppStore } from '../../stores/useAppStore'
 import BoxScene3dPanel from './BoxScene3dPanel'
+import BoxScene2dPanel from './BoxScene2dPanel'
 import BoxListDialog from './BoxListDialog'
 
 type AnyRecord = Record<string, any>
@@ -30,6 +31,13 @@ type AnyRecord = Record<string, any>
 type InfoRow = {
   label: string
   value: ReactNode
+}
+
+type SessionUser = {
+  user_name: string
+  id_admin: number
+  full_name?: string
+  update?: string
 }
 
 function joinValue(value: any): string {
@@ -95,6 +103,8 @@ export default function ResultDisplayTab() {
   const drawingNo = basic.drawingNoTemp ?? ''
   const cabinetName = box.code ?? ''
   const [sessionUserID, setSessionUserID] = useState('')
+  const [isAdminUser, setIsAdminUser] = useState(false)
+  const [loadingSessionUser, setLoadingSessionUser] = useState(true)
   const [boxListOpen, setBoxListOpen] = useState(false)
 
   useEffect(() => {
@@ -125,7 +135,37 @@ export default function ResultDisplayTab() {
       }
     }
 
+    async function fetchSessionUser() {
+      setLoadingSessionUser(true)
+
+      try {
+        const res = await axios.get<{ user: SessionUser | null }>('/api/GetSessionUser', {
+          withCredentials: true,
+        })
+        const nextSessionUser = res.data?.user ?? null
+
+        console.log('[ResultDisplayTab][GetSessionUser]', {
+          response: res.data,
+          id_admin: nextSessionUser?.id_admin,
+        })
+
+        if (!cancelled) {
+          setIsAdminUser(Boolean(nextSessionUser && nextSessionUser.id_admin !== 0))
+        }
+      } catch (error) {
+        console.error('[ResultDisplayTab][GetSessionUser] failed', error)
+        if (!cancelled) {
+          setIsAdminUser(false)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSessionUser(false)
+        }
+      }
+    }
+
     fetchSession()
+    fetchSessionUser()
 
     return () => {
       cancelled = true
@@ -286,56 +326,77 @@ export default function ResultDisplayTab() {
 
       <BoxListDialog open={boxListOpen} onClose={() => setBoxListOpen(false)} />
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-          要約情報
-        </Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableBody>
-              {infoRows.map((row) => (
-                <TableRow key={row.label}>
-                  <TableCell sx={{ width: 240, whiteSpace: 'nowrap', fontWeight: 700 }}>{row.label}</TableCell>
-                  <TableCell>{row.value}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.25fr) minmax(360px, 0.75fr)' },
+          gap: 2,
+          alignItems: 'start',
+        }}
+      >
+        <Box sx={{ minWidth: 0 }}>
+          {loadingSessionUser ? (
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Alert severity="info">ユーザー情報を確認しています。</Alert>
+            </Paper>
+          ) : isAdminUser ? (
+            <BoxScene3dPanel input={input} layout={layout} />
+          ) : (
+            <BoxScene2dPanel input={input} layout={layout} />
+          )}
+        </Box>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-          ユニットレイアウト
-        </Typography>
+        <Stack spacing={2} sx={{ minWidth: 0 }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+              要約情報
+            </Typography>
+            <TableContainer>
+              <Table size="small">
+                <TableBody>
+                  {infoRows.map((row) => (
+                    <TableRow key={row.label}>
+                      <TableCell sx={{ width: 240, whiteSpace: 'nowrap', fontWeight: 700 }}>{row.label}</TableCell>
+                      <TableCell>{row.value}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
 
-        {ulfRows.length === 0 ? (
-          <Alert severity="info">ユニットレイアウトデータがありません。</Alert>
-        ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ width: 120, fontWeight: 700 }}>列</TableCell>
-                  <TableCell sx={{ width: 160, fontWeight: 700 }}>幅</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>ユニット</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {ulfRows.map((row) => (
-                  <TableRow key={row.level}>
-                    <TableCell>{row.level}</TableCell>
-                    <TableCell>{row.width}</TableCell>
-                    <TableCell>{row.items}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+              ユニットレイアウト
+            </Typography>
 
-      <BoxScene3dPanel input={input} layout={layout} />
+            {ulfRows.length === 0 ? (
+              <Alert severity="info">ユニットレイアウトデータがありません。</Alert>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: 120, fontWeight: 700 }}>列</TableCell>
+                      <TableCell sx={{ width: 160, fontWeight: 700 }}>幅</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>ユニット</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {ulfRows.map((row) => (
+                      <TableRow key={row.level}>
+                        <TableCell>{row.level}</TableCell>
+                        <TableCell>{row.width}</TableCell>
+                        <TableCell>{row.items}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        </Stack>
+      </Box>
 
       <Divider />
 

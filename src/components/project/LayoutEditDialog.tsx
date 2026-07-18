@@ -44,7 +44,7 @@ type LineUpResponse = {
 };
 
 const DEFAULT_BOX_G = ["150", "150", "150"];
-const DEFAULT_BOX_W = ["500", "20", "500", "20", "500", "20"];
+const DEFAULT_BOX_W = ["0", "500", "20", "500", "20", "500", "20"];
 const DEFAULT_BOX_GB = "150";
 const SVG_HEIGHT = 2600;
 const SVG_WIDTH = 2000;
@@ -68,6 +68,7 @@ function normalizeBoxG(value: any): any[] {
 }
 
 function normalizeBoxW(value: any): any[] {
+  if (Array.isArray(value) && value.length === 6) return ["0", ...value];
   return Array.isArray(value) && value.length > 0 ? value : DEFAULT_BOX_W;
 }
 
@@ -76,6 +77,22 @@ function getLayoutBoxHeight(layoutState: AnyRecord | null | undefined) {
 }
 
 function makeClassifiedData(boxw: any[]) {
+  if (boxw.length >= 7) {
+    const widths = boxw.map((value) => toNumber(value));
+    const starts = [
+      widths[0],
+      widths[0] + widths[1] + widths[2],
+      widths[0] + widths[1] + widths[2] + widths[3] + widths[4],
+    ];
+
+    return starts.map((start, index) => ({
+      classIndex: index,
+      classValue: start,
+      lowerBound: start,
+      upperBound: starts[index + 1] ?? 9999,
+    }));
+  }
+
   const cumulative = boxw.map(Number).map(
     (
       (sum) => (value: number) =>

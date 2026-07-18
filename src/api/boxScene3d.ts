@@ -48,6 +48,7 @@ export type BoxScene3dResponse = {
 
 export type BoxScene3dRequest = {
   box_key: string
+  box_w?: number[]
   l: Array<{
     u: string
     k: string
@@ -90,6 +91,16 @@ export type BoxScene3dRequest = {
 
 type Scene3dState = Pick<AppState, 'input' | 'layout'>
 
+const boxWidthFields = [
+  'f_lgutter',
+  'i_floor1',
+  'i_clgutter',
+  'i_floor2',
+  'i_crgutter',
+  'i_floor3',
+  'f_rgutter',
+]
+
 function toNumber(value: unknown, fallback = 0) {
   const numericValue = Number(value)
   return Number.isFinite(numericValue) ? numericValue : fallback
@@ -121,6 +132,18 @@ export function getScene3dBoxKey(layout: Scene3dState['layout']) {
       stripConfirmedPrefix(layout.boxcode) ??
       '',
   ).trim()
+}
+
+function getLayoutBoxWidths(layout: Scene3dState['layout']) {
+  const box = layout.box ?? {}
+  const hasBoxWidthFields = boxWidthFields.some((field) => box[field] != null && String(box[field]).trim() !== '')
+
+  if (hasBoxWidthFields) {
+    return boxWidthFields.map((field) => toNumber(box[field]))
+  }
+
+  const rawBoxw = Array.isArray(layout.boxw) ? layout.boxw : ['0', '500', '20', '500', '20', '500', '20']
+  return (rawBoxw.length === 6 ? ['0', ...rawBoxw] : rawBoxw).map((value) => toNumber(value))
 }
 
 function buildDevicePayload(block: AnyRecord, device: AnyRecord) {
@@ -184,6 +207,7 @@ export function buildBoxScene3dRequest(state: Scene3dState): BoxScene3dRequest {
 
   return {
     box_key: boxKey,
+    box_w: getLayoutBoxWidths(state.layout),
     l: units,
     devices,
     format: 'scene-json',

@@ -54,6 +54,51 @@ type BoxSettingsForm = {
   boxHeight: string
 }
 
+const DEFAULT_BOX_WIDTHS = ['0', '500', '20', '500', '20', '500', '20']
+const BOX_WIDTH_LABELS = ['G0', 'W0', 'G1', 'W1', 'G2', 'W2', 'G3']
+const BOX_WIDTH_FIELDS = [
+  'f_lgutter',
+  'i_floor1',
+  'i_clgutter',
+  'i_floor2',
+  'i_crgutter',
+  'i_floor3',
+  'f_rgutter',
+] as const
+const BOX_GUTTER_WIDTH_INDICES = new Set([0, 2, 4, 6])
+const BOX_WIDTH_GRID_ITEMS = [
+  { index: 0, label: 'Left / G0', column: '1' },
+  { index: 1, label: 'Area1 / W0', column: '2' },
+  { index: 2, label: 'Gt1 / G1', column: '3' },
+  { index: 3, label: 'Area2 / W1', column: '4' },
+  { index: 4, label: 'Gt2 / G2', column: '5' },
+  { index: 5, label: 'Area3 / W2', column: '6' },
+  { index: 6, label: 'Right / G3', column: '7' },
+] as const
+const BOX_DIALOG_FIELD_SX = {
+  '& .MuiInputBase-root': {
+    height: 36,
+    borderRadius: 0,
+    backgroundColor: '#fff',
+  },
+  '& .MuiInputLabel-root': {
+    fontSize: 12,
+  },
+  '& input': {
+    fontSize: 13,
+    py: 0,
+  },
+}
+const BOX_DIALOG_SECTION_HEADER_SX = {
+  bgcolor: '#0071bc',
+  color: '#fff',
+  fontWeight: 700,
+  fontSize: 13,
+  px: 1,
+  py: 0.5,
+  lineHeight: 1.4,
+}
+
 const ZOOM_STEP = 0.4
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 4
@@ -207,6 +252,30 @@ function normalizeStringArray(value: unknown, length: number, fallback = '') {
   return Array.from({ length }, (_, index) => String(source[index] ?? fallback))
 }
 
+function getBoxWidthSegments(layout: AnyRecord) {
+  const box = isRecord(layout.box) ? layout.box : {}
+  const hasBoxWidthFields = BOX_WIDTH_FIELDS.some((field) => hasValue(box[field]))
+
+  if (hasBoxWidthFields) {
+    return BOX_WIDTH_FIELDS.map((field, index) => String(box[field] ?? DEFAULT_BOX_WIDTHS[index] ?? ''))
+  }
+
+  const sourceBoxw = Array.isArray(layout.boxw) && layout.boxw.length === 6
+    ? ['0', ...layout.boxw]
+    : layout.boxw
+
+  return normalizeStringArray(sourceBoxw, BOX_WIDTH_LABELS.length)
+    .map((value, index) => (hasValue(value) ? value : DEFAULT_BOX_WIDTHS[index] ?? ''))
+}
+
+function patchBoxWidthFields(box: unknown, boxWidths: string[]) {
+  const nextBox = isRecord(box) ? { ...box } : {}
+  BOX_WIDTH_FIELDS.forEach((field, index) => {
+    nextBox[field] = parseBoxSettingsValue(boxWidths[index] ?? '')
+  })
+  return nextBox
+}
+
 function buildBoxSettingsForm(input: AnyRecord, layout: AnyRecord): BoxSettingsForm {
   const cabinfo = getCabinfo(input)
 
@@ -218,7 +287,7 @@ function buildBoxSettingsForm(input: AnyRecord, layout: AnyRecord): BoxSettingsF
     selectedStandard: String(cabinfo.selectedstandard ?? ''),
     topGutters: normalizeStringArray(layout.boxg, 3),
     bottomGutter: String(layout.boxgb ?? ''),
-    boxWidths: normalizeStringArray(layout.boxw, 6),
+    boxWidths: getBoxWidthSegments(layout),
     boxHeight: String((isRecord(layout.box) ? layout.box.i_box_h : undefined) ?? layout.boxh ?? layout.boxH ?? ''),
   }
 }
@@ -537,6 +606,7 @@ function SvgView({
     if (onLayoutChange) {
       onLayoutChange({
         ...layout,
+        box: patchBoxWidthFields(layout.box, boxSettingsForm.boxWidths),
         boxg: boxSettingsForm.topGutters.map(parseBoxSettingsValue),
         boxgb: parseBoxSettingsValue(boxSettingsForm.bottomGutter),
         boxw: boxSettingsForm.boxWidths.map(parseBoxSettingsValue),
@@ -569,7 +639,7 @@ function SvgView({
         topGutters: [gutterData[0], gutterData[0], gutterData[0]].map((value) => String(value ?? '')),
         bottomGutter: String(gutterData[1] ?? ''),
         boxWidths: prev.boxWidths.map((value, index) =>
-          index === 1 || index === 3 || index === 5 ? String(gutterData[2] ?? '') : value,
+          BOX_GUTTER_WIDTH_INDICES.has(index) ? String(gutterData[2] ?? '') : value,
         ),
       }
     })
@@ -872,155 +942,190 @@ function SvgView({
         <DialogTitle>BOX設定</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="入線"
-                select
-                value={boxSettingsForm.inputWire}
-                onChange={(event) => {
-                  updateBoxSettingsField('inputWire', event.target.value)
-                  updateBoxSettingsField('selectedCategory', '')
-                  updateBoxSettingsField('selectedArea', '')
-                  updateBoxSettingsField('selectedStandard', '')
+            <Box>
+              <Box sx={BOX_DIALOG_SECTION_HEADER_SX}>実装高さ 入出線設定</Box>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, minmax(120px, 1fr))',
+                    md: 'repeat(5, minmax(120px, 1fr))',
+                  },
+                  gap: 1.5,
+                  p: 1,
+                  alignItems: 'center',
                 }}
-                fullWidth
               >
-                <MenuItem value="">Clear</MenuItem>
-                {[boxSettingsForm.inputWire, ...inputWireOptions]
-                  .filter((value, index, list) => value && list.indexOf(value) === index)
-                  .map((value) => (
+                <TextField
+                  label="実装高さ"
+                  type="number"
+                  size="small"
+                  value={boxSettingsForm.boxHeight}
+                  onChange={(event) => updateBoxSettingsField('boxHeight', event.target.value)}
+                  fullWidth
+                  inputProps={{ step: 25 }}
+                  sx={BOX_DIALOG_FIELD_SX}
+                />
+                <TextField
+                  label="入線"
+                  select
+                  size="small"
+                  value={boxSettingsForm.inputWire}
+                  onChange={(event) => {
+                    updateBoxSettingsField('inputWire', event.target.value)
+                    updateBoxSettingsField('selectedCategory', '')
+                    updateBoxSettingsField('selectedArea', '')
+                    updateBoxSettingsField('selectedStandard', '')
+                  }}
+                  fullWidth
+                  sx={BOX_DIALOG_FIELD_SX}
+                >
+                  <MenuItem value="">Clear</MenuItem>
+                  {[boxSettingsForm.inputWire, ...inputWireOptions]
+                    .filter((value, index, list) => value && list.indexOf(value) === index)
+                    .map((value) => (
+                      <MenuItem key={value} value={value}>
+                        {value}
+                      </MenuItem>
+                    ))}
+                </TextField>
+                <TextField
+                  label="種別"
+                  select
+                  size="small"
+                  value={boxSettingsForm.selectedCategory}
+                  onChange={(event) => {
+                    updateBoxSettingsField('selectedCategory', event.target.value)
+                    updateBoxSettingsField('selectedArea', '')
+                    updateBoxSettingsField('selectedStandard', '')
+                  }}
+                  fullWidth
+                  sx={BOX_DIALOG_FIELD_SX}
+                >
+                  <MenuItem value="">Clear</MenuItem>
+                  {categoryOptions.map((value) => (
                     <MenuItem key={value} value={value}>
                       {value}
                     </MenuItem>
                   ))}
-              </TextField>
-              <TextField
-                label="出線"
-                select
-                value={boxSettingsForm.outputWire}
-                onChange={(event) => updateBoxSettingsField('outputWire', event.target.value)}
-                fullWidth
-              >
-                <MenuItem value="">Clear</MenuItem>
-                {[boxSettingsForm.outputWire, ...outputWireOptions]
-                  .filter((value, index, list) => value && list.indexOf(value) === index)
-                  .map((value) => (
+                </TextField>
+                <TextField
+                  label="断面積"
+                  select
+                  size="small"
+                  value={boxSettingsForm.selectedArea}
+                  onChange={(event) => {
+                    updateBoxSettingsField('selectedArea', event.target.value)
+                    updateBoxSettingsField('selectedStandard', '')
+                  }}
+                  fullWidth
+                  sx={BOX_DIALOG_FIELD_SX}
+                >
+                  <MenuItem value="">Clear</MenuItem>
+                  {areaOptions.map((value) => (
                     <MenuItem key={value} value={value}>
                       {value}
                     </MenuItem>
                   ))}
-              </TextField>
-            </Stack>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-              <TextField
-                label="種別"
-                select
-                value={boxSettingsForm.selectedCategory}
-                onChange={(event) => {
-                  updateBoxSettingsField('selectedCategory', event.target.value)
-                  updateBoxSettingsField('selectedArea', '')
-                  updateBoxSettingsField('selectedStandard', '')
-                }}
-                fullWidth
-              >
-                <MenuItem value="">Clear</MenuItem>
-                {categoryOptions.map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {value}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="断面積"
-                select
-                value={boxSettingsForm.selectedArea}
-                onChange={(event) => {
-                  updateBoxSettingsField('selectedArea', event.target.value)
-                  updateBoxSettingsField('selectedStandard', '')
-                }}
-                fullWidth
-              >
-                <MenuItem value="">Clear</MenuItem>
-                {areaOptions.map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {value}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                label="規格"
-                select
-                value={boxSettingsForm.selectedStandard}
-                onChange={(event) => updateBoxSettingsField('selectedStandard', event.target.value)}
-                fullWidth
-              >
-                <MenuItem value="">Clear</MenuItem>
-                {standardOptions.map((value) => (
-                  <MenuItem key={value} value={value}>
-                    {value}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Button
-                variant="outlined"
-                onClick={calcGutter}
-                sx={{ minWidth: 120, alignSelf: { xs: 'stretch', sm: 'center' } }}
-              >
-                Gutter計算
-              </Button>
-            </Stack>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              {boxSettingsForm.topGutters.map((value, index) => (
+                </TextField>
                 <TextField
-                  key={index}
-                  label={`TopGutter_${index + 1}`}
-                  type="number"
-                  value={value}
-                  onChange={(event) => updateBoxSettingsArrayField('topGutters', index, event.target.value)}
+                  label="規格"
+                  select
+                  size="small"
+                  value={boxSettingsForm.selectedStandard}
+                  onChange={(event) => updateBoxSettingsField('selectedStandard', event.target.value)}
                   fullWidth
-                  inputProps={{ step: 25 }}
-                />
-              ))}
-              <TextField
-                label="BottomGutter"
-                type="number"
-                value={boxSettingsForm.bottomGutter}
-                onChange={(event) => updateBoxSettingsField('bottomGutter', event.target.value)}
-                fullWidth
-                inputProps={{ step: 25 }}
-              />
-            </Stack>
-
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
-                gap: 2,
-              }}
-            >
-              {boxSettingsForm.boxWidths.map((value, index) => (
+                  sx={BOX_DIALOG_FIELD_SX}
+                >
+                  <MenuItem value="">Clear</MenuItem>
+                  {standardOptions.map((value) => (
+                    <MenuItem key={value} value={value}>
+                      {value}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Button
+                  variant="contained"
+                  onClick={calcGutter}
+                  sx={{ height: 36, borderRadius: 0, fontSize: 13, fontWeight: 700 }}
+                >
+                  Gutter計算
+                </Button>
                 <TextField
-                  key={index}
-                  label={`列幅${index + 1}`}
-                  type="number"
-                  value={value}
-                  onChange={(event) => updateBoxSettingsArrayField('boxWidths', index, event.target.value)}
+                  label="出線"
+                  select
+                  size="small"
+                  value={boxSettingsForm.outputWire}
+                  onChange={(event) => updateBoxSettingsField('outputWire', event.target.value)}
                   fullWidth
-                  inputProps={{ step: 25 }}
-                />
-              ))}
+                  sx={BOX_DIALOG_FIELD_SX}
+                >
+                  <MenuItem value="">Clear</MenuItem>
+                  {[boxSettingsForm.outputWire, ...outputWireOptions]
+                    .filter((value, index, list) => value && list.indexOf(value) === index)
+                    .map((value) => (
+                      <MenuItem key={value} value={value}>
+                        {value}
+                      </MenuItem>
+                    ))}
+                </TextField>
+              </Box>
             </Box>
 
-            <TextField
-              label="配置高さ"
-              type="number"
-              value={boxSettingsForm.boxHeight}
-              onChange={(event) => updateBoxSettingsField('boxHeight', event.target.value)}
-              fullWidth
-              inputProps={{ step: 25 }}
-            />
+            <Box>
+              <Box sx={BOX_DIALOG_SECTION_HEADER_SX}>ガター設定</Box>
+              <Box sx={{ overflowX: 'auto', p: 1 }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: '120px 130px 90px 130px 90px 130px 120px',
+                    gap: 1,
+                    minWidth: 850,
+                    alignItems: 'center',
+                  }}
+                >
+                  {[0, 1, 2].map((index) => (
+                    <TextField
+                      key={`top-${index}`}
+                      label={`Top${index + 1}`}
+                      type="number"
+                      size="small"
+                      value={boxSettingsForm.topGutters[index] ?? ''}
+                      onChange={(event) => updateBoxSettingsArrayField('topGutters', index, event.target.value)}
+                      inputProps={{ step: 25 }}
+                      sx={{ ...BOX_DIALOG_FIELD_SX, gridColumn: `${2 + index * 2}` }}
+                    />
+                  ))}
+
+                  {BOX_WIDTH_GRID_ITEMS.map((item) => (
+                    <TextField
+                      key={item.index}
+                      label={item.label}
+                      type="number"
+                      size="small"
+                      value={boxSettingsForm.boxWidths[item.index] ?? ''}
+                      onChange={(event) => updateBoxSettingsArrayField('boxWidths', item.index, event.target.value)}
+                      inputProps={{ step: 25 }}
+                      sx={{ ...BOX_DIALOG_FIELD_SX, gridColumn: item.column }}
+                    />
+                  ))}
+
+                  {[0, 1, 2].map((index) => (
+                    <TextField
+                      key={`bottom-${index}`}
+                      label={`Bottom${index + 1}`}
+                      type="number"
+                      size="small"
+                      value={boxSettingsForm.bottomGutter}
+                      onChange={(event) => updateBoxSettingsField('bottomGutter', event.target.value)}
+                      inputProps={{ step: 25 }}
+                      sx={{ ...BOX_DIALOG_FIELD_SX, gridColumn: `${2 + index * 2}` }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>

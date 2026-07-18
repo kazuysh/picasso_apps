@@ -33,6 +33,7 @@ import { useAppStore, type AppState } from "../stores/useAppStore";
 
 type Project = {
   id: number;
+  uid: string;
   status: string;
   projectName: string;
   drawingNo: string;
@@ -222,6 +223,7 @@ export default function ProjectListPage() {
 
         return {
           id: (currentPage - 1) * PAGE_SIZE + index + 1,
+          uid: item?.UID || "",
           drawingNo: basic?.drawingNoTemp || "",
           projectName: basic?.subjectName || basic?.drawingsubjectName || "",
           assignee: item?.full_name || "",
@@ -274,6 +276,10 @@ export default function ProjectListPage() {
 
     replaceAll({
       generationStartStep: 'full',
+      projectMeta: {
+        uid: project.uid,
+        status: project.status || '設計中',
+      },
       input: {
         basic: workdata.input?.basic || {},
         cabinfo: workdata.input?.cabinfo || {},
@@ -293,7 +299,7 @@ export default function ProjectListPage() {
         layout: workdata.layout?.layout || [],
         ulf: workdata.layout?.ulf || {},
         box: workdata.layout?.box || {},
-        boxw: workdata.layout?.boxw || ['500', '20', '500', '20', '500', '20'],
+        boxw: workdata.layout?.boxw || ['0', '500', '20', '500', '20', '500', '20'],
         boxg: workdata.layout?.boxg || [],
         boxgb: workdata.layout?.boxgb || 0,
         boxh: workdata.layout?.boxh || 0,

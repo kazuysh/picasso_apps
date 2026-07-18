@@ -81,8 +81,14 @@ export type LayoutItem = {
 
 export type GenerationStartStep = 'full' | 'initialPlacement' | 'lineUp'
 
+export type ProjectMeta = {
+  uid?: string
+  status?: string
+}
+
 export type AppState = {
   generationStartStep: GenerationStartStep
+  projectMeta: ProjectMeta
   input: {
     basic: AnyRecord
     cabinfo: AnyRecord
@@ -149,6 +155,7 @@ export type AppStore = AppState & Actions
 
 const initialState: AppState = {
   generationStartStep: 'full',
+  projectMeta: {},
   input: {
     basic: {},
     cabinfo: {},
@@ -164,7 +171,7 @@ const initialState: AppState = {
     layout: [],
     ulf: {},
     box: {},
-    boxw: ['500', '20', '500', '20', '500', '20'],
+    boxw: ['0', '500', '20', '500', '20', '500', '20'],
     boxg: [],
     boxgb: 0,
     boxh: 0,

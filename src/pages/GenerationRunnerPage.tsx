@@ -115,6 +115,30 @@ function getLayoutBoxHeight(layoutState: any) {
   return layoutState?.box?.i_box_h ?? layoutState?.boxh ?? layoutState?.boxH ?? 0
 }
 
+const boxWidthFields = [
+  'f_lgutter',
+  'i_floor1',
+  'i_clgutter',
+  'i_floor2',
+  'i_crgutter',
+  'i_floor3',
+  'f_rgutter',
+]
+
+function getLayoutBoxWidths(layoutState: any) {
+  const box = layoutState?.box ?? {}
+  const hasBoxWidthFields = boxWidthFields.some((field) => box[field] != null && String(box[field]).trim() !== '')
+
+  if (hasBoxWidthFields) {
+    return boxWidthFields.map((field) => Number(box[field] ?? 0))
+  }
+
+  const rawBoxw: Array<number | string> = Array.isArray(layoutState?.boxw)
+    ? layoutState.boxw
+    : ['0', '500', '20', '500', '20', '500', '20']
+  return (rawBoxw.length === 6 ? ['0', ...rawBoxw] : rawBoxw).map((value) => Number(value) || 0)
+}
+
 function stripCsvQuotes(value: string) {
   const trimmed = value.trim()
   if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -531,7 +555,8 @@ export default function GenerationRunnerPage() {
   }, [applyUlfToUnitsIRow, pushLog, runAutoLayout])
 
   const getJoinedBoxW = useCallback(() => {
-    const boxw = (layout.boxw ?? ['500', '20', '500', '20', '500', '20']).map(String)
+    const rawBoxw = layout.boxw ?? ['0', '500', '20', '500', '20', '500', '20']
+    const boxw = (Array.isArray(rawBoxw) && rawBoxw.length === 6 ? ['0', ...rawBoxw] : rawBoxw).map(String)
     return boxw.join(',')
   }, [layout.boxw])
 
@@ -864,6 +889,7 @@ export default function GenerationRunnerPage() {
 
     const payload = {
       box_key: boxKey,
+      box_w: getLayoutBoxWidths(state.layout),
       l: payloadUnits,
       devices: payloadDevices,
       background: '#ffffff',
@@ -972,14 +998,24 @@ export default function GenerationRunnerPage() {
   return (
     <Box sx={{ p: 3, backgroundColor: '#f6f8fb', minHeight: '100vh' }}>
       <Stack spacing={3}>
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            回路生成 / 配置生成
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
-            生成開始ボタンで、回路生成 → 配置生成 → 整列 → SVG保存まで順に実行します。
-          </Typography>
-        </Box>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', sm: 'flex-start' }}
+          spacing={2}
+        >
+          <Box>
+            <Typography variant="h4" fontWeight={700}>
+              回路生成 / 配置生成
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
+              生成開始ボタンで、回路生成 → 配置生成 → 整列 → SVG保存まで順に実行します。
+            </Typography>
+          </Box>
+          <Button onClick={handleMoveProjectDetail} variant="outlined">
+            案件詳細へ
+          </Button>
+        </Stack>
 
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
           <Card sx={{ flex: 1, borderRadius: 3 }}>

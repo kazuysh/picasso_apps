@@ -69,14 +69,14 @@ function createDefaultLayout() {
         floor: {},
         layout: [],
         boxg: ["150", "150", "150"],
-        backgroundSvgUrl: "/api/getTemplate?w=500,50,500,50,500,50&h=2300",
+        backgroundSvgUrl: "/api/getTemplate?w=0,500,50,500,50,500,50&h=2300",
         nrow: 3,
         boxH: 2300,
         box: {},
         boxcode: "",
         svg: "",
         Info: {},
-        boxw: ["500", "50", "500", "50", "500", "50"],
+        boxw: ["0", "500", "50", "500", "50", "500", "50"],
         boxh: "2300",
         boxgb: "150",
     };
@@ -150,6 +150,10 @@ export default function DialogNoInput({
 
         replaceAll({
             ...latest,
+            projectMeta: {
+                uid: "",
+                status: "設計中",
+            },
             input: {
                 ...latest.input,
                 basic: {

@@ -29,7 +29,7 @@ import LogoffDialog from "./auth/LogoffDialog";
 import { useAppStore } from "../stores/useAppStore";
 import { useSessionStore } from "../stores/useSessionStore";
 
-const statusOptions = ["設計中", "確認中", "完了"];
+const statusOptions = ["設計中", "確認中", "承認待ち", "完了"];
 
 type SessionUser = {
     user_name: string;
@@ -42,18 +42,38 @@ type GetSessionUserResponse = {
     user: SessionUser | null;
 };
 
+const DESIGNING_STATUS = "設計中";
+const CONFIRMING_STATUS = "確認中";
+const GENERAL_USER_STATUS_OPTIONS = [DESIGNING_STATUS, CONFIRMING_STATUS];
+
+function getRequestErrorMessage(error: unknown, fallback: string) {
+    if (axios.isAxiosError(error)) {
+        const detail = (error.response?.data as { detail?: string } | undefined)?.detail;
+        return detail || error.message || fallback;
+    }
+
+    if (error instanceof Error) {
+        return error.message || fallback;
+    }
+
+    return fallback;
+}
+
 export default function AppHeader() {
     const location = useLocation();
     const navigate = useNavigate();
     const input = useAppStore((state) => state.input);
+    const projectMeta = useAppStore((state) => state.projectMeta);
     const updateInputData = useAppStore((state) => state.updateInputData);
     const clearSession = useSessionStore((state) => state.clearSession);
 
     const [storeDialogOpen, setStoreDialogOpen] = useState(false);
-    const [status, setStatus] = useState("設計中");
+    const [status, setStatus] = useState(DESIGNING_STATUS);
     const [storeDrawingNo, setStoreDrawingNo] = useState("");
     const [copyToStore, setCopyToStore] = useState(true);
     const [storing, setStoring] = useState(false);
+    const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+    const [loadingSessionUser, setLoadingSessionUser] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
 
     const drawingNo =
@@ -62,13 +82,49 @@ export default function AppHeader() {
         input.basic?.DrawingNo ??
         "";
     const isProjectListPage = location.pathname === "/";
+    const isGeneralUser = sessionUser?.id_admin === 0;
+    const sourceStatus = projectMeta?.status || DESIGNING_STATUS;
+    const sourceUid = projectMeta?.uid || "";
+    const sourceUserName = sourceUid.split("_")[0] || "";
+    const selectableStatusOptions = isGeneralUser ? GENERAL_USER_STATUS_OPTIONS : statusOptions;
+    const canGeneralUserChangeStatus =
+        isGeneralUser &&
+        !copyToStore &&
+        sourceStatus === DESIGNING_STATUS &&
+        (!sourceUserName || sourceUserName === sessionUser?.user_name);
+
+    const fetchSessionUser = async () => {
+        const sessionRes = await axios.get<GetSessionUserResponse>("/api/GetSessionUser", {
+            withCredentials: true,
+        });
+        const nextSessionUser = sessionRes.data?.user ?? null;
+
+        if (!nextSessionUser) {
+            clearSession();
+            navigate("/login", { replace: true });
+            return null;
+        }
+
+        setSessionUser(nextSessionUser);
+        if (nextSessionUser.id_admin === 0 && sourceStatus !== DESIGNING_STATUS) {
+            setStatus(DESIGNING_STATUS);
+        }
+
+        return nextSessionUser;
+    };
 
     const handleOpenStoreDialog = () => {
         setErrorMessage("");
-        setStatus("設計中");
+        setStatus(DESIGNING_STATUS);
         setStoreDrawingNo(String(drawingNo || ""));
         setCopyToStore(true);
         setStoreDialogOpen(true);
+        setLoadingSessionUser(true);
+        fetchSessionUser()
+            .catch((error: unknown) => {
+                setErrorMessage(getRequestErrorMessage(error, "ユーザー情報の取得に失敗しました。"));
+            })
+            .finally(() => setLoadingSessionUser(false));
     };
 
     const handleCloseStoreDialog = () => {
@@ -77,7 +133,21 @@ export default function AppHeader() {
     };
 
     const handleStatusChange = (event: SelectChangeEvent) => {
-        setStatus(event.target.value);
+        const nextStatus = event.target.value;
+
+        if (isGeneralUser && !GENERAL_USER_STATUS_OPTIONS.includes(nextStatus)) {
+            return;
+        }
+
+        setStatus(nextStatus);
+    };
+
+    const handleCopyToStoreChange = (checked: boolean) => {
+        setCopyToStore(checked);
+
+        if (isGeneralUser) {
+            setStatus(DESIGNING_STATUS);
+        }
     };
 
     const handleMoveProjectList = () => {
@@ -107,16 +177,34 @@ export default function AppHeader() {
         setErrorMessage("");
 
         try {
-            const sessionRes = await axios.get<GetSessionUserResponse>("/api/GetSessionUser", {
-                withCredentials: true,
-            });
-            const sessionUser = sessionRes.data?.user;
+            const latestSessionUser = await fetchSessionUser();
 
-            if (!sessionUser) {
-                clearSession();
-                navigate("/login", { replace: true });
+            if (!latestSessionUser) {
                 return;
             }
+
+            const isGeneralStoreUser = latestSessionUser.id_admin === 0;
+            const sourceBelongsToCurrentUser =
+                !sourceUserName || sourceUserName === latestSessionUser.user_name;
+
+            if (isGeneralStoreUser) {
+                if (!copyToStore && !sourceBelongsToCurrentUser) {
+                    setErrorMessage("一般ユーザーは他ユーザー名義の図面を上書き保管できません。図面番号を変えてコピーして保管してください。");
+                    return;
+                }
+
+                if (!copyToStore && sourceStatus !== DESIGNING_STATUS) {
+                    setErrorMessage("一般ユーザーはステータスが設計中の図面のみ上書き保管できます。図面番号を変えてコピーして保管してください。");
+                    return;
+                }
+
+                if (!copyToStore && !GENERAL_USER_STATUS_OPTIONS.includes(status)) {
+                    setErrorMessage("一般ユーザーが選択できるステータスは設計中または確認中です。");
+                    return;
+                }
+            }
+
+            const storeStatus = isGeneralStoreUser && copyToStore ? DESIGNING_STATUS : status;
 
             const latestState = useAppStore.getState();
             const nextInput = {
@@ -141,20 +229,26 @@ export default function AppHeader() {
             await axios.post(
                 "/api/postWork2Stored",
                 {
-                    user: sessionUser.user_name,
+                    user: latestSessionUser.user_name,
                     dno,
                     overwrite: !copyToStore,
-                    status,
-                    full_name: sessionUser.full_name,
+                    status: storeStatus,
+                    full_name: latestSessionUser.full_name,
                 },
                 { withCredentials: true },
             );
 
             updateInputData(nextInput);
+            useAppStore.setState((state) => ({
+                ...state,
+                projectMeta: {
+                    uid: `${latestSessionUser.user_name}_${dno}`,
+                    status: storeStatus,
+                },
+            }));
             setStoreDialogOpen(false);
-        } catch (error: any) {
-            const detail = error?.response?.data?.detail;
-            setErrorMessage(detail || error?.message || "保管に失敗しました。");
+        } catch (error: unknown) {
+            setErrorMessage(getRequestErrorMessage(error, "保管に失敗しました。"));
         } finally {
             setStoring(false);
         }
@@ -212,7 +306,8 @@ export default function AppHeader() {
                         control={
                             <Checkbox
                                 checked={copyToStore}
-                                onChange={(event) => setCopyToStore(event.target.checked)}
+                                onChange={(event) => handleCopyToStoreChange(event.target.checked)}
+                                disabled={loadingSessionUser}
                             />
                         }
                         label="コピーして保管"
@@ -226,8 +321,9 @@ export default function AppHeader() {
                             value={status}
                             label="ステータス"
                             onChange={handleStatusChange}
+                            disabled={loadingSessionUser || (isGeneralUser && !canGeneralUserChangeStatus)}
                         >
-                            {statusOptions.map((item) => (
+                            {selectableStatusOptions.map((item) => (
                                 <MenuItem key={item} value={item}>
                                     {item}
                                 </MenuItem>
