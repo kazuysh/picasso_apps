@@ -6,6 +6,7 @@ import RouteChangeSync from '../components/RouteChangeSync'
 import ProjectListPage from '../pages/ProjectListPage'
 import GenerationRunnerPage from '../pages/GenerationRunnerPage'
 import ProjectDetailPage from '../pages/ProjectDetailPage'
+import GenzLoadPage from '../pages/GenzLoadPage'
 
 export default function AppRouter() {
     return (
@@ -19,6 +20,7 @@ export default function AppRouter() {
                         <Route path="/" element={<ProjectListPage />} />
                         <Route path="/GenerationRunnerPage" element={<GenerationRunnerPage />} />
                         <Route path="/project-detail" element={<ProjectDetailPage />} />
+                        <Route path="/Pages/GenzLoad" element={<GenzLoadPage />} />
                     </Routes>
                 </Box>
             </AuthGate>
