@@ -2,6 +2,8 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { saveWork } from '../api/saveWork'
+import { buildUnitFlowDevices } from '../api/unitFlow'
+import type { UnitFlowApiRequest } from '../api/unitFlow'
 import {
   Alert,
   Box,
@@ -33,7 +35,6 @@ import ViewListIcon from '@mui/icons-material/ViewList'
 import SchemaIcon from '@mui/icons-material/Schema'
 import { useAppStore } from '../stores/useAppStore'
 import type {
-  DeviceBlockItem,
   GraphData,
   LayoutItem,
   UnitItem,
@@ -46,17 +47,6 @@ type ProgressLog = {
   time: string
   level: LogLevel
   message: string
-}
-
-type UnitFlowApiRequest = {
-  devices: Array<{
-    id: number
-    unitNo: string
-    node: string
-    path_no: number
-  }>
-  threshold: number
-  enforce_dag: boolean
 }
 
 type UnitFlowApiResponse = {
@@ -319,19 +309,7 @@ export default function GenerationRunnerPage() {
 
     const { keyToLabel } = buildUnitMaps()
 
-    const payloadDevices: UnitFlowApiRequest['devices'] = (devices.list ?? [])
-      .map((d: DeviceBlockItem) => {
-        const idNum = Number.parseInt(String(d.id ?? d.unit_i ?? d.i), 10)
-        if (!Number.isFinite(idNum)) return null
-
-        return {
-          id: idNum,
-          unitNo: String(d.unitNo ?? d.unit_no ?? d.unit_key ?? d.unit ?? ''),
-          node: String(d.node ?? d.node_type ?? d.type ?? 'MA'),
-          path_no: Number(d.path_no ?? d.path ?? d.route ?? 0),
-        }
-      })
-      .filter((v): v is UnitFlowApiRequest['devices'][number] => v !== null)
+    const payloadDevices = buildUnitFlowDevices(devices.list ?? [])
 
     if (payloadDevices.length === 0) {
       throw new Error('送信対象の devices.list が空です')

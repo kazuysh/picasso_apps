@@ -39,9 +39,9 @@ export type DeviceBlockItem = {
   node?: string
   node_type?: string
   type?: string
-  path_no?: number | string
-  path?: number | string
-  route?: number | string
+  path_no?: number | string | null
+  path?: number | string | null
+  route?: number | string | null
   devices?: DeviceInnerItem[]
   [key: string]: any
 }

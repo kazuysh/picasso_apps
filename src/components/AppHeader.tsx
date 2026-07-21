@@ -25,6 +25,7 @@ import {
 import type { SelectChangeEvent } from "@mui/material/Select";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import SaveIcon from "@mui/icons-material/Save";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import LogoffDialog from "./auth/LogoffDialog";
 import { useAppStore } from "../stores/useAppStore";
 import { useSessionStore } from "../stores/useSessionStore";
@@ -154,6 +155,10 @@ export default function AppHeader() {
         navigate("/");
     };
 
+    const handleMoveGenzImport = () => {
+        navigate("/Pages/GenzImport");
+    };
+
     const handleStore = async () => {
         const originalDno = String(drawingNo || "").trim();
         const dno = String(storeDrawingNo || "").trim();
@@ -262,6 +267,15 @@ export default function AppHeader() {
                 </Typography>
 
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {isProjectListPage && (
+                        <Button
+                            color="inherit"
+                            startIcon={<UploadFileIcon />}
+                            onClick={handleMoveGenzImport}
+                        >
+                            原図
+                        </Button>
+                    )}
                     {!isProjectListPage && (
                         <>
                             <Button
