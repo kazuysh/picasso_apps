@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 export interface ChangePasswordRequest {
-    userID: string
+    username: string
     password: string
     newpassword: string
 }
@@ -59,4 +59,3 @@ export async function sessionCheck(): Promise<SessionCheckResponse> {
     })
     return data
 }
-

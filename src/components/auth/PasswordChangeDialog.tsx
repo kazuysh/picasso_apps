@@ -11,6 +11,10 @@ import {
 } from '@mui/material'
 import { changePassword } from '../../api/auth'
 
+const MIN_PASSWORD_LENGTH = 8
+const ALPHANUMERIC_PATTERN = /^[a-zA-Z0-9]+$/
+const LETTER_AND_NUMBER_PATTERN = /^(?=.*[a-zA-Z])(?=.*\d)/
+
 type PasswordChangeDialogProps = {
     open: boolean
     userID: string
@@ -64,6 +68,31 @@ export default function PasswordChangeDialog({
             return
         }
 
+        if (oldPassword.length < MIN_PASSWORD_LENGTH) {
+            setErrorMessage('現在のパスワードは8文字以上で入力してください。')
+            return
+        }
+
+        if (!ALPHANUMERIC_PATTERN.test(oldPassword)) {
+            setErrorMessage('現在のパスワードは半角英数字のみで入力してください。')
+            return
+        }
+
+        if (newPassword.length < MIN_PASSWORD_LENGTH) {
+            setErrorMessage('新しいパスワードは8文字以上で入力してください。')
+            return
+        }
+
+        if (!ALPHANUMERIC_PATTERN.test(newPassword)) {
+            setErrorMessage('新しいパスワードは半角英数字のみで入力してください。')
+            return
+        }
+
+        if (!LETTER_AND_NUMBER_PATTERN.test(newPassword)) {
+            setErrorMessage('新しいパスワードには英字と数字の両方を含めてください。')
+            return
+        }
+
         if (newPassword !== confirmPassword) {
             setErrorMessage('新しいパスワードが一致しません。')
             return
@@ -73,7 +102,7 @@ export default function PasswordChangeDialog({
             setSubmitting(true)
 
             const result = await changePassword({
-                userID,
+                username: userID,
                 password: oldPassword,
                 newpassword: newPassword,
             })
