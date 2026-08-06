@@ -214,7 +214,7 @@ export default function GenzImportPage() {
         workblock: { block: {} },
         layout: createDefaultLayout(),
       })
-      navigate('/project-detail')
+      navigate('/GenerationRunnerPage')
     } catch (requestError) {
       setError(errorMessage(requestError))
       setCreatingBoard('')

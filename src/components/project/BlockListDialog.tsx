@@ -34,6 +34,7 @@ type BlockListDialogProps = {
   /** input.device.list[].id と照合する検索キー。例: 10001 */
   deviceBlockKey?: string
   items?: AnyRecord[]
+  fieldLabelDict?: Record<string, string>
   onClose: () => void
   onDeleteUnit?: () => void
 }
@@ -557,6 +558,7 @@ export default function BlockListDialog({
   circuitBlockId,
   deviceBlockKey,
   items = [],
+  fieldLabelDict = {},
   onClose,
   onDeleteUnit,
 }: BlockListDialogProps) {
@@ -1166,7 +1168,7 @@ export default function BlockListDialog({
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {header.title}
+                          {fieldLabelDict[header.key] ?? header.title}
                         </TableCell>
                       ))}
                     </TableRow>

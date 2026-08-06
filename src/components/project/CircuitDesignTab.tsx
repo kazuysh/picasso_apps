@@ -20,6 +20,7 @@ import UnitAddDialog from "./UnitAddDialog";
 
 type CircuitDesignTabProps = {
   graphdata?: any;
+  fieldLabelDict?: Record<string, string>;
   onGraphdataChange?: (nextGraphdata: any) => void;
 };
 
@@ -474,6 +475,7 @@ function removeUnitFromGraphdata(graphdata: unknown, nodeId: string) {
 
 export default function CircuitDesignTab({
   graphdata,
+  fieldLabelDict,
   onGraphdataChange,
 }: CircuitDesignTabProps) {
   const devices = useAppStore((state) => state.input?.device?.list || []);
@@ -641,6 +643,7 @@ export default function CircuitDesignTab({
         circuitBlockId={selectedOriginalNodeId}
         deviceBlockKey={selectedDeviceBlockKey}
         items={devices}
+        fieldLabelDict={fieldLabelDict}
         onClose={() => setBlockListDialogOpen(false)}
         onDeleteUnit={handleDeleteSelectedUnit}
       />

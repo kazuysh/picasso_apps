@@ -428,6 +428,7 @@ export default function ProjectDetailPage() {
             {activeTab === "circuit" && (
               <CircuitDesignTab
                 graphdata={circuitGraphData}
+                fieldLabelDict={fieldLabelDict}
                 onGraphdataChange={handleCircuitGraphdataChange}
               />
             )}
@@ -438,6 +439,7 @@ export default function ProjectDetailPage() {
                 layout={layout}
                 onInputChange={handleInputChange}
                 onLayoutChange={handleLayoutChange}
+                onLayoutEditApplied={handleGenerate}
               />
             )}
             {activeTab === "result" && <ResultDisplayTab />}

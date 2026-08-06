@@ -68,6 +68,8 @@ export type LayoutItem = {
   unit_key?: string
   i: number
   c?: number
+  column?: number
+  order?: number
   x?: number
   y?: number
   w?: number

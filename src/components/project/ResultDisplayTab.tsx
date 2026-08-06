@@ -22,6 +22,7 @@ import DownloadIcon from '@mui/icons-material/Download'
 import EditIcon from '@mui/icons-material/Edit'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useAppStore } from '../../stores/useAppStore'
+import { useConfigStore } from '../../stores/useConfigStore'
 import BoxScene3dPanel from './BoxScene3dPanel'
 import BoxScene2dPanel from './BoxScene2dPanel'
 import BoxListDialog from './BoxListDialog'
@@ -31,6 +32,13 @@ type AnyRecord = Record<string, any>
 type InfoRow = {
   label: string
   value: ReactNode
+  labelWidth: number | string
+}
+
+type InfoRowConfig = {
+  label: string
+  path: string
+  labelWidth?: number | string
 }
 
 type SessionUser = {
@@ -45,6 +53,41 @@ function joinValue(value: any): string {
   if (value === null || value === undefined) return ''
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
+}
+
+const defaultInfoRowConfigs: InfoRowConfig[] = [
+  { label: 'キャビネット品名', path: 'layout.box.code', labelWidth: 240 },
+  { label: '内器高さ', path: 'input.cabinfo.support_height', labelWidth: 240 },
+  { label: '移動板', path: 'layout.box.move_board', labelWidth: 240 },
+  { label: '入出線位置（入線）', path: 'input.cabinfo.input_wire', labelWidth: 240 },
+  { label: '入出線位置（出線）', path: 'input.cabinfo.output_wire', labelWidth: 240 },
+  { label: '仕様', path: 'input.basic.major_specification', labelWidth: 240 },
+  { label: '省庁', path: 'input.basic.minor_specification2', labelWidth: 240 },
+]
+
+function isInfoRowConfig(value: unknown): value is InfoRowConfig {
+  if (!value || typeof value !== 'object') return false
+
+  const row = value as Record<string, unknown>
+  const hasValidLabelWidth =
+    row.labelWidth === undefined ||
+    (typeof row.labelWidth === 'number' && Number.isFinite(row.labelWidth) && row.labelWidth >= 0) ||
+    (typeof row.labelWidth === 'string' && row.labelWidth.trim() !== '')
+
+  return (
+    typeof row.label === 'string' &&
+    row.label.trim() !== '' &&
+    typeof row.path === 'string' &&
+    row.path.trim() !== '' &&
+    hasValidLabelWidth
+  )
+}
+
+function getValueByPath(source: AnyRecord, path: string): unknown {
+  return path.split('.').reduce<unknown>((value, key) => {
+    if (!value || typeof value !== 'object') return undefined
+    return (value as AnyRecord)[key]
+  }, source)
 }
 
 function formatUlfUnitWidth(value: any): string {
@@ -92,11 +135,11 @@ function buildUid(state: AnyRecord, drawingNo: any, fallbackUserID = ''): string
 
 export default function ResultDisplayTab() {
   const state = useAppStore((storeState: AnyRecord) => storeState)
+  const config = useConfigStore((storeState) => storeState.config)
 
   const input = state.input ?? {}
   const layout = state.layout ?? {}
   const basic = input.basic ?? {}
-  const cabinfo = input.cabinfo ?? {}
   const box = layout.box ?? {}
   const ulf = layout.ulf ?? {}
   const layoutInfo = layout.layout ?? {}
@@ -189,16 +232,16 @@ export default function ResultDisplayTab() {
   }, [state, drawingNo, sessionUserID])
 
   const infoRows: InfoRow[] = useMemo(() => {
-    return [
-      { label: 'キャビネット品名', value: cabinetName },
-      { label: '内器高さ', value: cabinfo.support_height ?? '' },
-      { label: '移動板', value: box.move_board ?? '' },
-      { label: '入出線位置（入線）', value: cabinfo.input_wire ?? '' },
-      { label: '入出線位置（出線）', value: cabinfo.output_wire ?? '' },
-      { label: '仕様', value: basic.major_specification ?? '' },
-      { label: '省庁', value: basic.minor_specification2 ?? '' },
-    ]
-  }, [basic, box, cabinetName, cabinfo])
+    const configuredRows = config?.ResultDisplayOption?.infoRows
+    const validConfiguredRows = Array.isArray(configuredRows) ? configuredRows.filter(isInfoRowConfig) : []
+    const rowConfigs = validConfiguredRows.length > 0 ? validConfiguredRows : defaultInfoRowConfigs
+
+    return rowConfigs.map((row) => ({
+      label: row.label,
+      value: joinValue(getValueByPath(state, row.path)),
+      labelWidth: row.labelWidth ?? 240,
+    }))
+  }, [config, state])
 
   const ulfRows = useMemo(() => {
     const rows: { level: number; width: ReactNode; items: string }[] = []
@@ -356,7 +399,9 @@ export default function ResultDisplayTab() {
                 <TableBody>
                   {infoRows.map((row) => (
                     <TableRow key={row.label}>
-                      <TableCell sx={{ width: 240, whiteSpace: 'nowrap', fontWeight: 700 }}>{row.label}</TableCell>
+                      <TableCell sx={{ width: row.labelWidth, whiteSpace: 'nowrap', fontWeight: 700 }}>
+                        {row.label}
+                      </TableCell>
                       <TableCell>{row.value}</TableCell>
                     </TableRow>
                   ))}

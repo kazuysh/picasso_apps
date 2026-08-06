@@ -9,6 +9,7 @@ import ProjectDetailPage from '../pages/ProjectDetailPage'
 import GenzLoadPage from '../pages/GenzLoadPage'
 import GenzImportPage from '../pages/GenzImportPage'
 import BaccasLoadPage from '../pages/BaccasLoadPage'
+import BaccsImportPage from '../pages/BaccsImportPage'
 
 export default function AppRouter() {
     return (
@@ -25,6 +26,7 @@ export default function AppRouter() {
                         <Route path="/Pages/GenzLoad" element={<GenzLoadPage />} />
                         <Route path="/Pages/GenzImport" element={<GenzImportPage />} />
                         <Route path="/pages/BaccasLoad" element={<BaccasLoadPage />} />
+                        <Route path="/Pages/BaccsImport" element={<BaccsImportPage />} />
                     </Routes>
                 </Box>
             </AuthGate>

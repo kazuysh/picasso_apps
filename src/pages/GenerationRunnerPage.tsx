@@ -39,6 +39,12 @@ import type {
   LayoutItem,
   UnitItem,
 } from '../stores/useAppStore'
+import {
+  getLineUpConflictMessage,
+  normalizeLineUpBottomGutter,
+  normalizeLayoutOrders,
+  normalizeLineUpTopGutters,
+} from '../utils/layoutLineUp'
 
 type LogLevel = 'info' | 'success' | 'error'
 
@@ -64,11 +70,17 @@ type UnitLayoutInferRequest = {
 }
 
 type LineUpResponse = {
-  b: { url?: string } | string
+  coordinate_mode: 'column-order-v2'
+  layout_version: 2
+  success: boolean
   l: LayoutItem[]
-  f: Record<string, any>
+  f: Record<string, string[]>
+  column_depths: Record<string, string[]>
+  column_heights: Record<string, number>
   n: number
   h: number
+  required_height: number
+  errors: Array<{ code?: string; column?: number }>
 }
 
 type BoxSearchItem = {
@@ -555,7 +567,7 @@ export default function GenerationRunnerPage() {
     const codes3 = { u: codes2, ulf: buildUlfForLayoutApi(currentUlf) }
     console.log('postUnits2Layout payload =', codes3)
     const res1 = await axios.post<LayoutItem[]>('/api/postUnits2Layout', codes3)
-    setLayoutLayout(res1.data)
+    setLayoutLayout(normalizeLayoutOrders(res1.data))
     pushLog('postUnits2Layout 完了')
 
     const w = getJoinedBoxW()
@@ -593,45 +605,62 @@ export default function GenerationRunnerPage() {
       h: String(getLayoutBoxHeight(layoutState)),
     }
 
-    await axios.post('/api/postBoxSvg2', para)
-    pushLog('postBoxSvg2 完了', 'success')
-  }, [getJoinedBoxW, pushLog])
+    const res = await axios.post<string>('/api/postBoxSvg2', para, {
+      responseType: 'text',
+      headers: {
+        Accept: 'image/svg+xml',
+        'Cache-Control': 'no-store',
+      },
+    })
+    setLayoutField('svg', res.data)
+    pushLog('postBoxSvg2 完了: 箱選定前の配置SVGを layout.svg に保存しました', 'success')
+  }, [getJoinedBoxW, pushLog, setLayoutField])
 
   const updateLineUp = useCallback(async () => {
     pushLog('整列配置を開始します')
 
     const state = useAppStore.getState()
+    const lineUpLayout = normalizeLayoutOrders(state.layout.layout)
 
-    const res = await axios.post<LineUpResponse>('/api/postLineUp', {
-      b: state.layout.backgroundSvgUrl,
-      g: state.layout.boxg,
-      gb: state.layout.boxgb,
-      l: state.layout.layout,
-    })
+    try {
+      const res = await axios.post<LineUpResponse>('/api/postLineUp', {
+        coordinate_mode: 'column-order-v2',
+        layout_version: 2,
+        g: normalizeLineUpTopGutters(state.layout.boxg),
+        gb: normalizeLineUpBottomGutter(state.layout.boxgb),
+        l: lineUpLayout,
+      })
 
-    const url = res.data?.b
-    const ldata = res.data?.l ?? []
-    const floor = res.data?.f ?? {}
-    const nRow = res.data?.n ?? 0
-    const boxH = res.data?.h ?? 9999
+      const ldata = res.data?.l ?? []
+      const floor = res.data?.f ?? {}
+      const nRow = res.data?.n ?? 0
+      const boxH = res.data?.required_height ?? res.data?.h
 
-    setLayoutField('backgroundSvgUrl', typeof url === 'string' ? url : (url?.url ?? ''))
+      if (
+        res.data?.success !== true ||
+        boxH == null ||
+        lineUpLayout.length !== ldata.length
+      ) {
+        throw new Error('整列APIから有効な配置結果が返されませんでした。')
+      }
 
-    const currentLayout = useAppStore.getState().layout.layout
-
-    if (boxH !== 9999 && currentLayout.length === ldata.length) {
       setLayoutLayout(ldata)
       setLayoutFloor(floor)
+      setLayoutField('layout_version', 2)
       setLayoutField('nrow', nRow)
       setLayoutField('boxH', boxH)
       setUnitNewFlag(0)
-      pushLog('整列成功', 'success')
+      pushLog('column/orderによる整列成功', 'success')
       await updateLayoutStore2()
-    } else {
+    } catch (error) {
       setLayoutField('boxH', 0)
       setUnitNewFlag(1)
-      pushLog('整列失敗のため初期配置へ戻します', 'error')
-      await updateLayoutStore()
+      const message = getLineUpConflictMessage(
+        error,
+        'column/orderによる整列配置に失敗しました。',
+      )
+      pushLog(message, 'error')
+      throw new Error(message)
     }
   }, [
     pushLog,
@@ -639,7 +668,6 @@ export default function GenerationRunnerPage() {
     setLayoutFloor,
     setLayoutLayout,
     setUnitNewFlag,
-    updateLayoutStore,
     updateLayoutStore2,
   ])
 

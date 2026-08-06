@@ -159,6 +159,10 @@ export default function AppHeader() {
         navigate("/Pages/GenzImport");
     };
 
+    const handleMoveBaccsImport = () => {
+        navigate("/Pages/BaccsImport");
+    };
+
     const handleStore = async () => {
         const originalDno = String(drawingNo || "").trim();
         const dno = String(storeDrawingNo || "").trim();
@@ -268,13 +272,22 @@ export default function AppHeader() {
 
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     {isProjectListPage && (
-                        <Button
-                            color="inherit"
-                            startIcon={<UploadFileIcon />}
-                            onClick={handleMoveGenzImport}
-                        >
-                            原図
-                        </Button>
+                        <>
+                            <Button
+                                color="inherit"
+                                startIcon={<UploadFileIcon />}
+                                onClick={handleMoveGenzImport}
+                            >
+                                原図
+                            </Button>
+                            <Button
+                                color="inherit"
+                                startIcon={<UploadFileIcon />}
+                                onClick={handleMoveBaccsImport}
+                            >
+                                BACCS
+                            </Button>
+                        </>
                     )}
                     {!isProjectListPage && (
                         <>

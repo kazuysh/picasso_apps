@@ -27,6 +27,7 @@ type LayoutDesignTabProps = {
   layout?: AnyRecord
   onInputChange?: (nextInput: AnyRecord) => void
   onLayoutChange?: (nextLayout: AnyRecord) => void
+  onLayoutEditApplied?: () => void
 }
 
 type GutterRow = {
@@ -1145,6 +1146,7 @@ export default function LayoutDesignTab({
   layout = {},
   onInputChange,
   onLayoutChange,
+  onLayoutEditApplied,
 }: LayoutDesignTabProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
 
@@ -1175,6 +1177,7 @@ export default function LayoutDesignTab({
         layout={layout}
         onInputChange={onInputChange}
         onLayoutChange={onLayoutChange}
+        onApplied={onLayoutEditApplied}
         onClose={() => setEditDialogOpen(false)}
       />
     </>
