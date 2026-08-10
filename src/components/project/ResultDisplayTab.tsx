@@ -5,7 +5,6 @@ import {
   Alert,
   Box,
   Button,
-  Divider,
   IconButton,
   Paper,
   Stack,
@@ -443,13 +442,6 @@ export default function ResultDisplayTab() {
         </Stack>
       </Box>
 
-      <Divider />
-
-      <Box>
-        <Typography variant="body2" color="text.secondary">
-          箱選定SVG表示領域は、React移行時に削除しています。
-        </Typography>
-      </Box>
     </Stack>
   )
 }

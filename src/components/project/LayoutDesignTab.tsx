@@ -779,8 +779,6 @@ function SvgView({
                 }
               }}
               sx={{
-                px: 1,
-                py: 1,
                 borderBottom: '1px solid',
                 borderColor: 'divider',
                 cursor: 'pointer',
@@ -789,25 +787,56 @@ function SvgView({
                 },
               }}
             >
-              <Stack spacing={0.5}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="body2">
-                    入線&nbsp;&nbsp;{formatBoxSummaryValue(cabinfo.input_wire)}
-                  </Typography>
-                  <Typography variant="body2">
-                    出線&nbsp;&nbsp;{formatBoxSummaryValue(cabinfo.output_wire)}
-                  </Typography>
-                </Stack>
-                <Typography variant="body2">
-                  種別&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{formatBoxSummaryValue(cabinfo.selectedcategory)}
+              <Box
+                sx={{
+                  px: 1,
+                  py: 0.5,
+                  bgcolor: '#f3f4f6',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
+                  実装高さ 入出線設定
                 </Typography>
-                <Typography variant="body2">
-                  断面積&nbsp;&nbsp;&nbsp;&nbsp;{formatBoxSummaryValue(cabinfo.selectedarea)}
-                </Typography>
-                <Typography variant="body2">
-                  規格&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{formatBoxSummaryValue(cabinfo.selectedstandard)}
-                </Typography>
-              </Stack>
+              </Box>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: '48px minmax(0, 1fr) 56px minmax(0, 1fr)',
+                  columnGap: 1,
+                  rowGap: 0.5,
+                  alignItems: 'baseline',
+                  px: 1,
+                  py: 1,
+                }}
+              >
+                {[
+                  ['入線', cabinfo.input_wire, '種別', cabinfo.selectedcategory],
+                  ['出線', cabinfo.output_wire, '断面積', cabinfo.selectedarea],
+                  [
+                    '高さ',
+                    (isRecord(layout.box) ? layout.box.i_box_h : undefined) ?? layout.boxh ?? layout.boxH,
+                    '規格',
+                    cabinfo.selectedstandard,
+                  ],
+                ].flatMap((row, rowIndex) =>
+                  row.map((value, columnIndex) => (
+                    <Typography
+                      key={`${rowIndex}-${columnIndex}`}
+                      variant="body2"
+                      sx={{
+                        color: columnIndex % 2 === 0 ? 'text.secondary' : 'text.primary',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {columnIndex % 2 === 0 ? String(value) : formatBoxSummaryValue(value)}
+                    </Typography>
+                  )),
+                )}
+              </Box>
             </Box>
             <Box
               sx={{

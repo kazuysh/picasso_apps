@@ -232,7 +232,7 @@
   <header>
     <div class="inner">
       <h1>InSize 操作説明書</h1>
-      <p class="meta">更新日: 2026-07-29 / 対象URL: <code>http://localhost:8000/react/</code> / 画面イメージ保存先: <code>docs_images</code></p>
+      <p class="meta">更新日: 2026-08-06 / 対象URL: <code>http://localhost:8000/react/</code> / 画面イメージ保存先: <code>docs_images</code></p>
     </div>
   </header>
 
@@ -385,8 +385,13 @@
         <li>「回路設計」タブで回路図を確認します。</li>
         <li>「回路結合を編集」アイコンから回路編集ダイアログを開きます。</li>
         <li>「ユニット追加」からユニット追加ダイアログを開きます。</li>
+        <li>新しい経路を作る場合は「経路追加」をクリックします。未使用の経路番号で入力ノードと出力ノードが1組追加されます。</li>
+        <li>接続されていない入力・出力ノードを整理する場合は「未使用経路」をクリックします。</li>
         <li>回路図上のユニットをクリックすると、機器ブロック一覧を確認できます。</li>
       </ol>
+      <div class="note">
+        <p><strong>注意:</strong> 「経路追加」と「未使用経路」は、クリックすると回路データを直ちに変更します。「未使用経路」を実行する前に、削除対象がどのブロックにも接続されていないことを回路図で確認してください。</p>
+      </div>
       <figure class="screen">
         <img src="../docs_images/03_project_detail_circuit.jpg" alt="案件詳細 回路設計タブ">
         <figcaption>案件詳細: 回路設計タブ</figcaption>

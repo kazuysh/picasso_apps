@@ -10,6 +10,7 @@ import GenzLoadPage from '../pages/GenzLoadPage'
 import GenzImportPage from '../pages/GenzImportPage'
 import BaccasLoadPage from '../pages/BaccasLoadPage'
 import BaccsImportPage from '../pages/BaccsImportPage'
+import GenzLoad2Page from '../pages/GenzLoad2Page'
 
 export default function AppRouter() {
     return (
@@ -24,6 +25,7 @@ export default function AppRouter() {
                         <Route path="/GenerationRunnerPage" element={<GenerationRunnerPage />} />
                         <Route path="/project-detail" element={<ProjectDetailPage />} />
                         <Route path="/Pages/GenzLoad" element={<GenzLoadPage />} />
+                        <Route path="/Pages/GenzLoad2" element={<GenzLoad2Page />} />
                         <Route path="/Pages/GenzImport" element={<GenzImportPage />} />
                         <Route path="/pages/BaccasLoad" element={<BaccasLoadPage />} />
                         <Route path="/Pages/BaccsImport" element={<BaccsImportPage />} />

@@ -226,7 +226,7 @@ export default function GenzImportPage() {
       <Container maxWidth="lg">
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} mb={3}>
           <Box>
-            <Typography component="h1" variant="h4" fontWeight={800} sx={{ m: 0 }}>Genzから新規案件作成</Typography>
+            <Typography component="h1" variant="h4" fontWeight={800} sx={{ m: 0 }}>新規案件作成</Typography>
             <Typography color="text.secondary" mt={0.5}>Gens JSONを変換し、盤ごとに新しい案件データを作成します。</Typography>
           </Box>
           <Chip label={`ユーザー: ${sessionUser || '取得中'}`} variant="outlined" sx={{ alignSelf: 'flex-start' }} />

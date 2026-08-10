@@ -41,8 +41,6 @@ type BlockListDialogProps = {
 
 const headers = [
   { title: 'id', key: 'id' },
-  { title: 'subunit', key: 'unit' },
-  { title: 'block', key: 'block' },
   { title: '系統番号', key: 'path_no' },
   { title: 'phase', key: 'phase' },
   { title: 'cap', key: 'cap' },
@@ -94,6 +92,21 @@ type PlacementDirection = '-' | 'h' | 'v'
 
 function normalize(value: unknown) {
   return String(value ?? '').trim()
+}
+
+function renderTableValue(
+  key: string,
+  value: unknown,
+  fieldLabelDict: Record<string, string>,
+) {
+  if (key === 'type' || key === 'node') {
+    const dictionaryKey = normalize(value)
+    if (dictionaryKey && fieldLabelDict[dictionaryKey]) {
+      return fieldLabelDict[dictionaryKey]
+    }
+  }
+
+  return renderValue(value)
 }
 
 function stripInstanceSuffix(value: unknown) {
@@ -1072,7 +1085,7 @@ export default function BlockListDialog({
             <Stack spacing={1}>
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  UNIT SVG
+                  ユニット図（UNIT SVG）
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   unit_id: {requestUnitId || '未特定'}
@@ -1148,6 +1161,10 @@ export default function BlockListDialog({
           </Paper>
 
           <Stack spacing={2} sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              ユニット名: {circuitBlockId || targetBaseId || requestUnitId || '未特定'}
+            </Typography>
+
             {filteredItems.length === 0 ? (
               <Paper variant="outlined" sx={{ p: 3 }}>
                 <Typography color="text.secondary">
@@ -1204,18 +1221,10 @@ export default function BlockListDialog({
                         >
                           {headers.map((header) => (
                             <TableCell key={header.key} sx={{ verticalAlign: 'top' }}>
-                              {header.key === 'block' && placementIssue ? (
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  <Box>{renderValue(item?.[header.key])}</Box>
-                                  <Chip
-                                    label="配置NG"
-                                    color="error"
-                                    size="small"
-                                    variant="outlined"
-                                  />
-                                </Stack>
-                              ) : (
-                                renderValue(item?.[header.key])
+                              {renderTableValue(
+                                header.key,
+                                item?.[header.key],
+                                fieldLabelDict,
                               )}
                             </TableCell>
                           ))}

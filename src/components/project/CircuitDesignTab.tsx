@@ -454,6 +454,74 @@ function appendUnitsToGraphdata(graphdata: unknown, units: AnyRecord[]) {
   return nextGraphdata;
 }
 
+function appendRouteToGraphdata(graphdata: unknown) {
+  const normalized = normalizeGraphdata(graphdata);
+  const routeNumbers = new Set<number>();
+
+  for (const node of normalized.nodes) {
+    const match = getNodeId(node).match(/^(?:IN|OUT)#(\d+)$/i);
+    if (!match) continue;
+
+    const routeNumber = Number(match[1]);
+    if (Number.isSafeInteger(routeNumber) && routeNumber > 0) {
+      routeNumbers.add(routeNumber);
+    }
+  }
+
+  let nextRouteNumber = routeNumbers.size + 1;
+  while (routeNumbers.has(nextRouteNumber)) {
+    nextRouteNumber += 1;
+  }
+
+  const nextNodes = [
+    ...normalized.nodes,
+    {
+      id: `IN#${nextRouteNumber}`,
+      label: `入力#${nextRouteNumber}`,
+      node_type: "in",
+    },
+    {
+      id: `OUT#${nextRouteNumber}`,
+      label: `出力#${nextRouteNumber}`,
+      node_type: "out",
+    },
+  ];
+
+  return {
+    ...(graphdata || {}),
+    nodes: nextNodes,
+    edges: normalized.edges,
+    node: nextNodes,
+    edge: normalized.edges,
+  };
+}
+
+function removeUnusedRoutesFromGraphdata(graphdata: unknown) {
+  const normalized = normalizeGraphdata(graphdata);
+  const connectedNodeIds = new Set<string>();
+
+  for (const edge of normalized.edges) {
+    const from = getEdgeFrom(edge);
+    const to = getEdgeTo(edge);
+    if (from) connectedNodeIds.add(from);
+    if (to) connectedNodeIds.add(to);
+  }
+
+  const nextNodes = normalized.nodes.filter((node: AnyRecord) => {
+    const nodeId = getNodeId(node);
+    const isRouteNode = /^(?:IN|OUT)#\d+$/i.test(nodeId);
+    return !isRouteNode || connectedNodeIds.has(nodeId);
+  });
+
+  return {
+    ...(graphdata || {}),
+    nodes: nextNodes,
+    edges: normalized.edges,
+    node: nextNodes,
+    edge: normalized.edges,
+  };
+}
+
 function removeUnitFromGraphdata(graphdata: unknown, nodeId: string) {
   const normalized = normalizeGraphdata(graphdata);
   const removeId = normalize(nodeId);
@@ -532,6 +600,14 @@ export default function CircuitDesignTab({
     onGraphdataChange(appendUnitsToGraphdata(graphdata, units));
   };
 
+  const handleRouteAdded = () => {
+    onGraphdataChange?.(appendRouteToGraphdata(graphdata));
+  };
+
+  const handleUnusedRoutesRemoved = () => {
+    onGraphdataChange?.(removeUnusedRoutesFromGraphdata(graphdata));
+  };
+
   const handleDeleteSelectedUnit = () => {
     const nodeId = normalize(selectedOriginalNodeId);
     const unitInstanceId = normalize(selectedDeviceBlockKey || getSuffixAfterAt(nodeId));
@@ -590,6 +666,23 @@ export default function CircuitDesignTab({
             onClick={() => setUnitAddDialogOpen(true)}
           >
             ユニット追加
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddIcon fontSize="small" />}
+            onClick={handleRouteAdded}
+          >
+            経路追加
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="error"
+            startIcon={<RemoveIcon fontSize="small" />}
+            onClick={handleUnusedRoutesRemoved}
+          >
+            未使用経路
           </Button>
         </Stack>
 
