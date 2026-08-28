@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Accordion,
@@ -161,7 +161,6 @@ export default function ProjectDetailPage() {
   );
 
   const config = useConfigStore((state) => state.config);
-  const fetchConfig = useConfigStore((state) => state.fetchData);
 
   const [activeTab, setActiveTab] = useState<"circuit" | "layout" | "result">(
     "circuit",
@@ -169,10 +168,6 @@ export default function ProjectDetailPage() {
   const [basicDialogOpen, setBasicDialogOpen] = useState(false);
   const [cabinetDialogOpen, setCabinetDialogOpen] = useState(false);
   const [cabinetOptionDialogOpen, setCabinetOptionDialogOpen] = useState(false);
-
-  useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
 
   const handleGenerate = () => {
     navigate("/GenerationRunnerPage");
@@ -219,23 +214,20 @@ export default function ProjectDetailPage() {
   };
 
   const handleSaveCabinetInfo = (nextCabinfo: Record<string, any>) => {
-    const store: any = (useAppStore as any).getState?.();
-
-    if (typeof store?.setInput === "function") {
-      store.setInput({
-        ...store.input,
+    useAppStore.setState((state) => ({
+      input: {
+        ...state.input,
         cabinfo: nextCabinfo,
-      });
-    } else if (typeof useAppStore.setState === "function") {
-      useAppStore.setState((state: any) => ({
-        input: {
-          ...state.input,
-          cabinfo: nextCabinfo,
-        },
-      }));
-    } else {
-      console.warn("useAppStore の更新関数に合わせて修正してください。");
-    }
+      },
+      // 筐体の検索条件が変わったため、以前の選定結果を再利用しない。
+      // 次回の回路・配置生成では ensureBoxSelected が現在の条件で再検索する。
+      layout: {
+        ...state.layout,
+        box: {},
+        boxcode: "",
+        svg: "",
+      },
+    }));
 
     setCabinetDialogOpen(false);
   };

@@ -38,6 +38,7 @@ type InfoRowConfig = {
   label: string
   path: string
   labelWidth?: number | string
+  options?: string[]
 }
 
 type SessionUser = {

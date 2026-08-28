@@ -20,6 +20,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useAppStore } from '../../stores/useAppStore'
+import { buildBoxSearchFilter } from '../../utils/boxSearchFilter'
 
 type AnyRecord = Record<string, any>
 
@@ -121,48 +122,6 @@ function normalizeSortBy(sortBy: SortOption[]) {
   return base
 }
 
-function toNumberList(values: unknown) {
-  if (!Array.isArray(values)) return []
-  return values.map(Number).filter((value) => !Number.isNaN(value))
-}
-
-function buildBoxFilter(cabinfo: AnyRecord, layout: AnyRecord) {
-  const floor = layout.floor ?? {}
-  const nrow = layout.nrow
-  const boxH = layout.boxH ?? layout.boxh ?? 0
-  const filter: AnyRecord = {}
-
-  const setFloorFilter = (key: 'i_floor1' | 'i_floor2' | 'i_floor3', values: unknown) => {
-    const numberValues = toNumberList(values)
-    if (numberValues.length > 0) filter[key] = { $in: numberValues }
-  }
-
-  setFloorFilter('i_floor1', floor[1] ?? floor['1'])
-  setFloorFilter('i_floor2', floor[2] ?? floor['2'])
-  setFloorFilter('i_floor3', floor[3] ?? floor['3'])
-
-  if (hasValue(cabinfo.floor1)) filter.i_floor1 = { $in: [Number(cabinfo.floor1)] }
-  if (hasValue(cabinfo.floor2)) filter.i_floor2 = { $in: [Number(cabinfo.floor2)] }
-  if (hasValue(cabinfo.floor3)) filter.i_floor3 = { $in: [Number(cabinfo.floor3)] }
-
-  if (hasValue(nrow)) filter.i_NRow = nrow
-  if (hasValue(cabinfo.material)) filter.body_material = cabinfo.material
-  if (hasValue(cabinfo.format)) filter.box_location = cabinfo.format
-  if (hasValue(cabinfo.outer_color)) filter.out_color = cabinfo.outer_color
-  if (hasValue(cabinfo.format2)) filter.box_purpose = cabinfo.format2
-  if (hasValue(cabinfo.structure)) filter.structure = cabinfo.structure
-  if (hasValue(cabinfo.boxwidth)) filter.i_box_w = Number(cabinfo.boxwidth)
-  if (hasValue(cabinfo.boxdepth)) filter.i_box_d = Number(cabinfo.boxdepth)
-  if (hasValue(cabinfo.support_height)) filter.list_support_height = String(cabinfo.support_height)
-
-  if (hasValue(boxH) && Number(boxH) > 0) {
-    filter.i_box_h = { $gte: Number(boxH) }
-  }
-  if (hasValue(cabinfo.boxheight)) filter.i_box_h = Number(cabinfo.boxheight)
-
-  return filter
-}
-
 function normalizeLayoutUlf(rawUlf: unknown) {
   if (!rawUlf || typeof rawUlf !== 'object' || Array.isArray(rawUlf)) return null
 
@@ -224,7 +183,7 @@ export default function BoxListDialog({ open, onClose }: Props) {
   const [selectingCode, setSelectingCode] = useState('')
   const [error, setError] = useState('')
 
-  const filter = useMemo(() => buildBoxFilter(cabinfo ?? {}, layout ?? {}), [cabinfo, layout])
+  const filter = useMemo(() => buildBoxSearchFilter(cabinfo ?? {}, layout ?? {}), [cabinfo, layout])
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -303,6 +262,7 @@ export default function BoxListDialog({ open, onClose }: Props) {
 
       setLayoutField('box', item)
       setLayoutField('boxcode', `確定${boxKey}`)
+      setLayoutField('boxh', item.i_box_h ?? '')
       onClose()
     } catch (selectError) {
       console.error('[BoxListDialog][handleSelect] failed', selectError)

@@ -29,6 +29,8 @@ import ClearIcon from "@mui/icons-material/Clear";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import DialogNoInput from "../components/DialogNoInput";
 import { useAppStore, type AppState } from "../stores/useAppStore";
+import { useConfigStore } from "../stores/useConfigStore";
+import { getProjectStatusOptions } from "../utils/resultDisplayConfig";
 
 type Project = {
   id: number;
@@ -64,7 +66,6 @@ type PostWorkCollByPageResponse = {
   msg?: string;
 };
 
-const statusOptions: string[] = ["すべて", "設計中", "確認中", "承認待ち", "完了"];
 const PAGE_SIZE = 10;
 
 type SearchConditions = {
@@ -103,10 +104,6 @@ function createInitialSearchConditions(): SearchConditions {
     updatedFrom: oneMonthBefore(today),
     updatedTo: today,
   };
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function getStatusColor(status: string): "default" | "primary" | "secondary" | "success" | "warning" {
@@ -199,6 +196,8 @@ function ProjectCard({ project, selected, onOpen }: ProjectCardProps) {
 }
 
 export default function ProjectListPage() {
+  const config = useConfigStore((state) => state.config);
+  const statusOptions = ["すべて", ...getProjectStatusOptions(config)];
   const [searchConditions, setSearchConditions] =
     useState<SearchConditions>(createInitialSearchConditions);
   const [appliedSearchConditions, setAppliedSearchConditions] =
@@ -240,69 +239,21 @@ export default function ProjectListPage() {
         throw new Error("sessioncheck から session を取得できませんでした。");
       }
 
-      const andFilters: Record<string, unknown>[] = [
-        {
-          UID: { $regex: `^${escapeRegExp(userID)}_` },
-        },
-      ];
-
-      if (appliedSearchConditions.status !== "すべて") {
-        andFilters.push({ status: appliedSearchConditions.status });
-      }
-
-      if (appliedSearchConditions.subject.trim()) {
-        const subjectRegex = {
-          $regex: escapeRegExp(appliedSearchConditions.subject.trim()),
-          $options: "i",
-        };
-        andFilters.push({
-          $or: [
-            { "data.input.basic.subjectName": subjectRegex },
-            { "data.input.basic.drawingsubjectName": subjectRegex },
-          ],
-        });
-      }
-
-      if (appliedSearchConditions.drawingNo.trim()) {
-        andFilters.push({
-          "data.input.basic.drawingNoTemp": {
-            $regex: escapeRegExp(appliedSearchConditions.drawingNo.trim()),
-            $options: "i",
-          },
-        });
-      }
-
-      if (appliedSearchConditions.assignee.trim()) {
-        andFilters.push({
-          full_name: {
-            $regex: escapeRegExp(appliedSearchConditions.assignee.trim()),
-            $options: "i",
-          },
-        });
-      }
-
-      if (appliedSearchConditions.updatedFrom || appliedSearchConditions.updatedTo) {
-        andFilters.push({
-          updated: {
-            ...(appliedSearchConditions.updatedFrom
-              ? { $gte: new Date(`${appliedSearchConditions.updatedFrom}T00:00:00`).toISOString() }
-              : {}),
-            ...(appliedSearchConditions.updatedTo
-              ? { $lte: new Date(`${appliedSearchConditions.updatedTo}T23:59:59.999`).toISOString() }
-              : {}),
-          },
-        });
-      }
-
       const params = {
-        startPage: (currentPage - 1) * PAGE_SIZE + 1,
-        length: PAGE_SIZE,
-        filter: {
-          $and: andFilters,
-        },
-        collection: "storeddata",
-        sortkey: "created",
-        sortorder: "asc",
+        page: currentPage,
+        pageSize: PAGE_SIZE,
+        source: "stored",
+        status:
+          appliedSearchConditions.status === "すべて"
+            ? undefined
+            : appliedSearchConditions.status,
+        subject: appliedSearchConditions.subject.trim() || undefined,
+        drawingNo: appliedSearchConditions.drawingNo.trim() || undefined,
+        assignee: appliedSearchConditions.assignee.trim() || undefined,
+        updatedFrom: appliedSearchConditions.updatedFrom || undefined,
+        updatedTo: appliedSearchConditions.updatedTo || undefined,
+        sortKey: "updated",
+        sortOrder: "desc",
       };
 
       const res = await axios.post<PostWorkCollByPageResponse>(

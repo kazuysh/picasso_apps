@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -29,8 +29,8 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import LogoffDialog from "./auth/LogoffDialog";
 import { useAppStore } from "../stores/useAppStore";
 import { useSessionStore } from "../stores/useSessionStore";
-
-const statusOptions = ["設計中", "確認中", "承認待ち", "完了"];
+import { useConfigStore } from "../stores/useConfigStore";
+import { getProjectStatusOptions } from "../utils/resultDisplayConfig";
 
 type SessionUser = {
     user_name: string;
@@ -66,6 +66,8 @@ export default function AppHeader() {
     const input = useAppStore((state) => state.input);
     const projectMeta = useAppStore((state) => state.projectMeta);
     const updateInputData = useAppStore((state) => state.updateInputData);
+    const config = useConfigStore((state) => state.config);
+    const fetchConfig = useConfigStore((state) => state.fetchData);
     const clearSession = useSessionStore((state) => state.clearSession);
 
     const [storeDialogOpen, setStoreDialogOpen] = useState(false);
@@ -87,12 +89,19 @@ export default function AppHeader() {
     const sourceStatus = projectMeta?.status || DESIGNING_STATUS;
     const sourceUid = projectMeta?.uid || "";
     const sourceUserName = sourceUid.split("_")[0] || "";
-    const selectableStatusOptions = isGeneralUser ? GENERAL_USER_STATUS_OPTIONS : statusOptions;
+    const configuredStatusOptions = getProjectStatusOptions(config);
+    const selectableStatusOptions = isGeneralUser
+        ? configuredStatusOptions.filter((option) => GENERAL_USER_STATUS_OPTIONS.includes(option))
+        : configuredStatusOptions;
     const canGeneralUserChangeStatus =
         isGeneralUser &&
         !copyToStore &&
         sourceStatus === DESIGNING_STATUS &&
         (!sourceUserName || sourceUserName === sessionUser?.user_name);
+
+    useEffect(() => {
+        fetchConfig();
+    }, [fetchConfig]);
 
     const fetchSessionUser = async () => {
         const sessionRes = await axios.get<GetSessionUserResponse>("/api/GetSessionUser", {

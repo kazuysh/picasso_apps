@@ -45,6 +45,8 @@ import {
   normalizeLayoutOrders,
   normalizeLineUpTopGutters,
 } from '../utils/layoutLineUp'
+import { buildBoxSearchFilter } from '../utils/boxSearchFilter'
+import { getEffectiveBoxHeight } from '../utils/layoutBoxHeight'
 
 type LogLevel = 'info' | 'success' | 'error'
 
@@ -111,10 +113,6 @@ type BoxSearchResponse = {
     total?: number
   }
   msg?: string
-}
-
-function getLayoutBoxHeight(layoutState: any) {
-  return layoutState?.box?.i_box_h ?? layoutState?.boxh ?? layoutState?.boxH ?? 0
 }
 
 const boxWidthFields = [
@@ -571,7 +569,7 @@ export default function GenerationRunnerPage() {
     pushLog('postUnits2Layout 完了')
 
     const w = getJoinedBoxW()
-    const boxh = String(getLayoutBoxHeight(useAppStore.getState().layout))
+    const boxh = String(getEffectiveBoxHeight(useAppStore.getState().layout))
     setLayoutField('backgroundSvgUrl', `/api/getTemplate?w=${w}&h=${boxh}`)
 
     const latestLayout = useAppStore.getState().layout.layout
@@ -602,7 +600,7 @@ export default function GenerationRunnerPage() {
       l: layoutState.layout,
       w,
       g: (layoutState.boxg ?? []).join(','),
-      h: String(getLayoutBoxHeight(layoutState)),
+      h: String(getEffectiveBoxHeight(layoutState)),
     }
 
     const res = await axios.post<string>('/api/postBoxSvg2', para, {
@@ -633,6 +631,7 @@ export default function GenerationRunnerPage() {
 
       const ldata = res.data?.l ?? []
       const floor = res.data?.f ?? {}
+      const columnDepths = res.data?.column_depths ?? {}
       const nRow = res.data?.n ?? 0
       const boxH = res.data?.required_height ?? res.data?.h
 
@@ -646,6 +645,7 @@ export default function GenerationRunnerPage() {
 
       setLayoutLayout(ldata)
       setLayoutFloor(floor)
+      setLayoutField('column_depths', columnDepths)
       setLayoutField('layout_version', 2)
       setLayoutField('nrow', nRow)
       setLayoutField('boxH', boxH)
@@ -654,6 +654,7 @@ export default function GenerationRunnerPage() {
       await updateLayoutStore2()
     } catch (error) {
       setLayoutField('boxH', 0)
+      setLayoutField('column_depths', undefined)
       setUnitNewFlag(1)
       const message = getLineUpConflictMessage(
         error,
@@ -768,45 +769,11 @@ export default function GenerationRunnerPage() {
 
     if (currentBoxKey) {
       pushLog(`箱選定済み: ${String(currentBoxKey)}`, 'success')
-      await refreshLayoutUlfForBox(getLayoutBoxHeight(layoutState))
+      await refreshLayoutUlfForBox(getEffectiveBoxHeight(layoutState))
       return String(currentBoxKey)
     }
 
-    const floor = layoutState.floor ?? {}
-    const nrow = layoutState.nrow
-    const boxH = layoutState.boxH ?? layoutState.boxh ?? 0
-
-    const filter: Record<string, any> = {}
-
-    const setFloorFilter = (key: 'i_floor1' | 'i_floor2' | 'i_floor3', values: any) => {
-      if (!Array.isArray(values) || values.length === 0) return
-      const vals = values.map(Number).filter((v: number) => !Number.isNaN(v))
-      if (vals.length > 0) filter[key] = { $in: vals }
-    }
-
-    // BoxList.vue の loadItems と同じ検索条件。
-    setFloorFilter('i_floor1', floor[1])
-    setFloorFilter('i_floor2', floor[2])
-    setFloorFilter('i_floor3', floor[3])
-
-    if (cabinfo.floor1 != null) filter.i_floor1 = { $in: [Number(cabinfo.floor1)] }
-    if (cabinfo.floor2 != null) filter.i_floor2 = { $in: [Number(cabinfo.floor2)] }
-    if (cabinfo.floor3 != null) filter.i_floor3 = { $in: [Number(cabinfo.floor3)] }
-
-    if (nrow != null) filter.i_NRow = nrow
-    if (cabinfo.material != null) filter.body_material = cabinfo.material
-    if (cabinfo.format != null) filter.box_location = cabinfo.format
-    if (cabinfo.outer_color != null) filter.out_color = cabinfo.outer_color
-    if (cabinfo.format2 != null) filter.box_purpose = cabinfo.format2
-    if (cabinfo.structure != null) filter.structure = cabinfo.structure
-    if (cabinfo.boxwidth != null) filter.i_box_w = cabinfo.boxwidth
-    if (cabinfo.boxdepth != null) filter.i_box_d = cabinfo.boxdepth
-    if (cabinfo.support_height != null) filter.list_support_height = String(cabinfo.support_height)
-
-    if (boxH != null && Number(boxH) > 0) {
-      filter.i_box_h = { $gte: Number(boxH) }
-    }
-    if (cabinfo.boxheight != null) filter.i_box_h = cabinfo.boxheight
+    const filter = buildBoxSearchFilter(cabinfo, layoutState)
 
     const payload = {
       startPage: 1,
@@ -842,6 +809,7 @@ export default function GenerationRunnerPage() {
     await refreshLayoutUlfForBox(selectedBox.i_box_h)
     setLayoutField('box', selectedBox)
     setLayoutField('boxcode', `確定${boxKey}`)
+    setLayoutField('boxh', selectedBox.i_box_h ?? '')
 
     pushLog(`箱選定完了: ${boxKey}`, 'success')
     return String(boxKey)

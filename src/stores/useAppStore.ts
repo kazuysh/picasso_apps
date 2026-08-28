@@ -126,6 +126,7 @@ export type AppState = {
     boxh?: number | string
     boxH?: number | string
     nrow?: number
+    column_depths?: Record<string, string[]>
     backgroundSvgUrl?: string
     svg?: string
     [key: string]: any
@@ -179,6 +180,7 @@ const initialState: AppState = {
     boxh: 0,
     boxH: 0,
     nrow: 0,
+    column_depths: undefined,
     backgroundSvgUrl: '',
     svg: '',
   },
@@ -247,6 +249,7 @@ export const useAppStore = create<AppStore>()(
         boxcode: '',
         boxH: 0,
         nrow: 0,
+        column_depths: undefined,
         backgroundSvgUrl: '',
         svg: '',
       },

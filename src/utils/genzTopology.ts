@@ -57,7 +57,7 @@ export type CircuitPathGraph = {
 
 export type CircuitTopologyResult = {
   schema_version: '1.0'
-  prompt_version: 'post-gens-topology-v1'
+  prompt_version: 'post-gens-topology-v1' | 'post-baccas-topology-v1'
   board_name: string
   paths: CircuitPathGraph[]
   warnings: TopologyWarning[]
@@ -248,7 +248,8 @@ export function buildTopologies(rows: OutputDataRow[]): { normalized: TopologyPr
 }
 
 export function validateTopology(result: CircuitTopologyResult) {
-  if (result.schema_version !== '1.0' || result.prompt_version !== 'post-gens-topology-v1') throw new Error('トポロジーのバージョンが不正です。')
+  const promptVersions: CircuitTopologyResult['prompt_version'][] = ['post-gens-topology-v1', 'post-baccas-topology-v1']
+  if (result.schema_version !== '1.0' || !promptVersions.includes(result.prompt_version)) throw new Error('トポロジーのバージョンが不正です。')
   result.paths.forEach((path) => {
     const ids = new Set<string>()
     path.nodes.forEach((node) => {

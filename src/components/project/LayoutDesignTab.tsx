@@ -17,6 +17,7 @@ import {
 } from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
 import LayoutEditDialog from './LayoutEditDialog'
+import { getEffectiveBoxHeight } from '../../utils/layoutBoxHeight'
 import { useConfigStore } from '../../stores/useConfigStore'
 
 type AnyRecord = Record<string, unknown>
@@ -289,7 +290,7 @@ function buildBoxSettingsForm(input: AnyRecord, layout: AnyRecord): BoxSettingsF
     topGutters: normalizeStringArray(layout.boxg, 3),
     bottomGutter: String(layout.boxgb ?? ''),
     boxWidths: getBoxWidthSegments(layout),
-    boxHeight: String((isRecord(layout.box) ? layout.box.i_box_h : undefined) ?? layout.boxh ?? layout.boxH ?? ''),
+    boxHeight: String(getEffectiveBoxHeight(layout)),
   }
 }
 
@@ -484,6 +485,7 @@ function SvgView({
   layout,
   onInputChange,
   onLayoutChange,
+  onBoxSettingsApplied,
 }: {
   svgText?: string
   toolbarStart: ReactNode
@@ -491,6 +493,7 @@ function SvgView({
   layout: AnyRecord
   onInputChange?: (nextInput: AnyRecord) => void
   onLayoutChange?: (nextLayout: AnyRecord) => void
+  onBoxSettingsApplied?: () => void
 }) {
   const [scale, setScale] = useState(ZOOM_INITIAL)
   const [selectedGutterUnit, setSelectedGutterUnit] = useState<SelectedGutterUnit | null>(null)
@@ -589,6 +592,8 @@ function SvgView({
   )
 
   const saveBoxDialog = useCallback(() => {
+    const nextBoxHeight = parseBoxSettingsValue(boxSettingsForm.boxHeight)
+
     if (onInputChange) {
       const currentCabinfo = getCabinfo(input)
       onInputChange({
@@ -601,6 +606,10 @@ function SvgView({
           selectedarea: boxSettingsForm.selectedArea,
           selectedstandard: boxSettingsForm.selectedStandard,
         },
+        circuit: {
+          ...(isRecord(input.circuit) ? input.circuit : {}),
+          svg: '',
+        },
       })
     }
 
@@ -611,12 +620,23 @@ function SvgView({
         boxg: boxSettingsForm.topGutters.map(parseBoxSettingsValue),
         boxgb: parseBoxSettingsValue(boxSettingsForm.bottomGutter),
         boxw: boxSettingsForm.boxWidths.map(parseBoxSettingsValue),
-        boxh: parseBoxSettingsValue(boxSettingsForm.boxHeight),
+        boxh: nextBoxHeight,
+        backgroundSvgUrl: '',
+        svg: '',
       })
     }
 
     closeBoxDialog()
-  }, [boxSettingsForm, closeBoxDialog, input, layout, onInputChange, onLayoutChange])
+    onBoxSettingsApplied?.()
+  }, [
+    boxSettingsForm,
+    closeBoxDialog,
+    input,
+    layout,
+    onBoxSettingsApplied,
+    onInputChange,
+    onLayoutChange,
+  ])
 
   const calcGutter = useCallback(() => {
     setBoxSettingsForm((prev) => {
@@ -816,7 +836,7 @@ function SvgView({
                   ['出線', cabinfo.output_wire, '断面積', cabinfo.selectedarea],
                   [
                     '高さ',
-                    (isRecord(layout.box) ? layout.box.i_box_h : undefined) ?? layout.boxh ?? layout.boxH,
+                    getEffectiveBoxHeight(layout),
                     '規格',
                     cabinfo.selectedstandard,
                   ],
@@ -1187,6 +1207,7 @@ export default function LayoutDesignTab({
         layout={layout}
         onInputChange={onInputChange}
         onLayoutChange={onLayoutChange}
+        onBoxSettingsApplied={onLayoutEditApplied}
         toolbarStart={
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="h6">配置編集</Typography>

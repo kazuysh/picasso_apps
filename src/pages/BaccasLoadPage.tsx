@@ -10,8 +10,11 @@ import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded'
 import TextSnippetOutlinedIcon from '@mui/icons-material/TextSnippetOutlined'
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import type { BlockRow, JsonObject, PostBCSResponse } from '../api/postBCSTXT2BlockJSON'
 import { postBCSText } from '../api/postBCSTXT2BlockJSON'
+import BaccasTopologyPanel from '../components/BaccasTopologyPanel'
+import { buildBaccasTopology } from '../utils/baccasTopology'
 
 type SendMode = 'file' | 'json' | 'text'
 
@@ -75,7 +78,11 @@ function BlockTable({ rows }: { rows: BlockRow[] }) {
   )
 }
 
-export default function BaccasLoadPage() {
+export type BaccasLoadPageProps = {
+  showTopology?: boolean
+}
+
+export default function BaccasLoadPage({ showTopology = false }: BaccasLoadPageProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [mode, setMode] = useState<SendMode>('file')
   const [file, setFile] = useState<File | null>(null)
@@ -90,6 +97,21 @@ export default function BaccasLoadPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [response, setResponse] = useState<PostBCSResponse | null>(null)
+
+  const topology = useMemo(() => {
+    if (!showTopology || !response || response.ok === false) return null
+    const rows = response.block?.list ?? []
+    if (!rows.length) return null
+    const basic = response.basic ?? {}
+    const boardName = String(
+      basic.board_name ?? basic.boardName ?? basic.drawingNoTemp ?? basic.drawingNo ?? sourceFileName ?? 'Baccas',
+    )
+    try {
+      return { data: buildBaccasTopology(rows, boardName) }
+    } catch (buildError) {
+      return { error: errorMessage(buildError) }
+    }
+  }, [response, showTopology, sourceFileName])
 
   const handleFile = async (nextFile?: File) => {
     if (!nextFile) return
@@ -142,13 +164,14 @@ export default function BaccasLoadPage() {
     <Box sx={{ minHeight: 'calc(100vh - 64px)', bgcolor: '#f5f7fb', p: { xs: 2, md: 3 }, textAlign: 'left' }}>
       <Box sx={{ maxWidth: 1480, mx: 'auto' }}>
         <Stack direction="row" gap={1.5} alignItems="center" mb={0.5}>
-          <TextSnippetOutlinedIcon color="primary" />
+          {showTopology ? <AccountTreeOutlinedIcon color="primary" /> : <TextSnippetOutlinedIcon color="primary" />}
           <Typography component="h1" variant="h4" fontWeight={800} sx={{ fontSize: { xs: 25, md: 32 } }}>
-            Baccas HOSTテキスト変換テスト
+            {showTopology ? 'Baccas 回路トポロジー テスト' : 'Baccas HOSTテキスト変換テスト'}
           </Typography>
         </Stack>
         <Typography color="text.secondary" mb={3}>
-          HOST見積もり画面テキストを <Box component="code">POST /api/postBCSTXT2BlockJSON</Box> に送り、workData候補を確認します。
+          HOST見積もり画面テキストを <Box component="code">POST /api/postBCSTXT2BlockJSON</Box> に送り、
+          {showTopology ? 'block.listからPATH別の構造化グラフとMermaid回路図を生成します。' : 'workData候補を確認します。'}
         </Typography>
 
         <Card variant="outlined" sx={{ mb: 3 }}>
@@ -203,6 +226,7 @@ export default function BaccasLoadPage() {
         </Card>
 
         {error && <Alert severity="error" sx={{ mb: 3, whiteSpace: 'pre-wrap' }}>{error}</Alert>}
+        {topology && 'error' in topology && <Alert severity="error" sx={{ mb: 3 }}>{topology.error}</Alert>}
 
         {response && <Stack spacing={3}>
           <Card variant="outlined"><CardContent>
@@ -235,6 +259,10 @@ export default function BaccasLoadPage() {
             <Typography variant="body2" color="text.secondary" mb={2}>workData のblock系データへ格納する主データです。</Typography>
             <BlockTable rows={blocks} />
           </CardContent></Card>
+
+          {topology && 'data' in topology && topology.data && (
+            <BaccasTopologyPanel result={topology.data.result} normalized={topology.data.normalized} />
+          )}
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, gap: 2 }}>
             <JsonCard title={`未マッチ明細（${unmatched.length}件）`} value={unmatched} />

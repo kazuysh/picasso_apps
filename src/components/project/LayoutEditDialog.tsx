@@ -21,6 +21,7 @@ import {
   normalizeLineUpBottomGutter,
   normalizeLayoutOrders,
 } from '../../utils/layoutLineUp'
+import { getEffectiveBoxHeight } from '../../utils/layoutBoxHeight'
 
 // Existing layout/device payloads contain API-defined dynamic fields.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -136,30 +137,6 @@ function normalizeBoxW(layoutState: AnyRecord) {
   if (source.length === 6) return ['0', ...source]
   if (source.length === 7) return source
   return DEFAULT_BOX_W
-}
-
-function getLayoutBoxHeight(layoutState: AnyRecord) {
-  const candidates = [
-    layoutState?.box?.i_box_h,
-    layoutState?.boxh,
-    layoutState?.boxH,
-  ]
-  const positiveHeight = candidates
-    .map((value) => toNumber(value))
-    .find((value) => value > 0)
-
-  if (positiveHeight) return positiveHeight
-
-  const layoutList = Array.isArray(layoutState?.layout) ? layoutState.layout : []
-  const contentHeight = layoutList.reduce(
-    (maximum: number, unit: AnyRecord) =>
-      Math.max(
-        maximum,
-        toNumber(unit?.y) + toNumber(unit?.h) + toNumber(unit?.gbottom),
-      ),
-    0,
-  )
-  return Math.max(1800, contentHeight)
 }
 
 function getColumnStarts(boxWidths: unknown[]) {
@@ -400,7 +377,7 @@ export default function LayoutEditDialog({
   const boxg = useMemo(() => normalizeBoxG(draftLayout?.boxg), [draftLayout?.boxg])
   const boxw = useMemo(() => normalizeBoxW(draftLayout), [draftLayout])
   const columns = useMemo(() => getColumnStarts(boxw), [boxw])
-  const boxHeight = useMemo(() => getLayoutBoxHeight(draftLayout), [draftLayout])
+  const boxHeight = useMemo(() => getEffectiveBoxHeight(draftLayout, 1800), [draftLayout])
   const boxCode =
     draftLayout?.boxcode ??
     draftLayout?.box?.box_key ??
@@ -437,7 +414,7 @@ export default function LayoutEditDialog({
             l: currentLayout,
             w: normalizeBoxW(layoutState).map(String).join(','),
             g: normalizeBoxG(layoutState?.boxg).map(String).join(','),
-            h: String(getLayoutBoxHeight(layoutState)),
+            h: String(getEffectiveBoxHeight(layoutState, 1800)),
             render_mode: 'result2d',
             devices,
             options: {
@@ -571,6 +548,7 @@ export default function LayoutEditDialog({
           ...previousDraft,
           layout: alignedLayout,
           floor: response.data?.f ?? {},
+          column_depths: response.data?.column_depths ?? {},
           nrow: response.data?.n ?? 0,
           boxH,
           layout_version: 2,

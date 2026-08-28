@@ -30,6 +30,10 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import SearchIcon from "@mui/icons-material/Search";
 import { useAppStore, type AnyRecord } from "../../stores/useAppStore";
 import { useConfigStore } from "../../stores/useConfigStore";
+import {
+  analyzeUnitSizeCompatibility,
+  getUnitSizeCompatibilityError,
+} from "../../utils/unitSizeCompatibility";
 
 type UnitAddDialogProps = {
   open: boolean;
@@ -266,6 +270,15 @@ export default function UnitAddDialog({
 
     try {
       const state = useAppStore.getState();
+      const compatibility = analyzeUnitSizeCompatibility([
+        ...(state.input.unit.list ?? []),
+        item,
+      ]);
+      if (!compatibility.valid) {
+        setError(getUnitSizeCompatibilityError(compatibility));
+        return;
+      }
+
       const newId = state.input.unit.currentID;
       const gtr = await axios.get(`/api/getUnitGtr?u=${unitNo}&w=${selectedWire}`);
       const rawDevices = await fetchRawDevices(unitKey, selectedPhase, newId);
@@ -332,6 +345,7 @@ export default function UnitAddDialog({
       let nextUnitList = [...(state.input.unit.list ?? [])];
       let nextDeviceList = [...(state.input.device.list ?? [])];
       const addedUnits: AnyRecord[] = [];
+      const foundUnits: Array<{ unitNo: string; unit: AnyRecord }> = [];
 
       for (const rawUnitNo of listUnitNo) {
         const unitNo = String(rawUnitNo ?? "");
@@ -341,6 +355,24 @@ export default function UnitAddDialog({
         const found = Array.isArray(unitResponse.data) ? unitResponse.data[0] : null;
         if (!found) continue;
 
+        foundUnits.push({ unitNo, unit: found });
+      }
+
+      if (foundUnits.length === 0) {
+        setError("追加可能なユニットが見つかりませんでした。");
+        return;
+      }
+
+      const compatibility = analyzeUnitSizeCompatibility([
+        ...nextUnitList,
+        ...foundUnits.map(({ unit }) => unit),
+      ]);
+      if (!compatibility.valid) {
+        setError(getUnitSizeCompatibilityError(compatibility));
+        return;
+      }
+
+      for (const { unitNo, unit: found } of foundUnits) {
         const gtr = await axios.get(`/api/getUnitGtr?u=${unitNo}&w=${selectedWire}`);
         const rawDevices = await fetchRawDevices(unitNo, selectedPhase, currentId);
         nextDeviceList = await placeAndUpdateByRawDevices(rawDevices, [
